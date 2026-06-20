@@ -13,3 +13,5 @@
 6. Adjust if needed — If someone objects (too pricey, etc.), Maya taps "regenerate" with a constraint like "cheaper" and the AI returns a revised plan instead of starting the whole conversation over.
 
 7. Plan locked in — Group confirms, plan is saved/visible to everyone, hangout happens without anyone having had to do the legwork.
+
+![Use Case Flow Visualization](https://media.discordapp.net/attachments/1427139176515502233/1517963729520820284/image.png?ex=6a383163&is=6a36dfe3&hm=cf6cdb1604db4db9ba4377aa91dc83c1b1ae678de42f5b191dfdabc543d8bb4a&=&format=webp&quality=lossless&width=706&height=826)
