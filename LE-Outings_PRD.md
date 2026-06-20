@@ -39,7 +39,7 @@ There's no lightweight tool built specifically for casual friend groups that han
 - User profile: name, availability (days/times), dietary restrictions, price range, food cravings/preferences, transportation status (has car / needs ride, which days car is available, how many seats/who's in whose car, and whether the group needs to take public transport if there aren't enough drivers)
 - Group creation: name a group, add members, view member list and profiles (for food, there's an option for "decide in person")
   - Can have solo groups if people/families are just using the platform to explore new areas when traveling
-- Plan request: select a group, input a city/area, optionally a date range/time range or occasion (e.g. "casual dinner," "outdoor activity")
+- Plan request: select a group, input a city/area, optionally a date range/time range or occasion (e.g. "casual dinner," "outdoor activity") (if a group already has a plan, just skip auto planning) 
 - AI plan generation: cross-references all member profiles to output a single proposed plan (location, time, food/venue suggestions, transportation assignments)
   - If "decide in person" is selected for food, the plan lists that food is up for group decision
 - Plan display: clean summary view of the generated plan, with reasoning shown (e.g. "Picked 7pm since that's when everyone's free")
@@ -51,8 +51,8 @@ There's no lightweight tool built specifically for casual friend groups that han
 - **Plan reasoning shown to the user** — the AI explains why it picked what it picked, so the group trusts and can adjust the output instead of treating it as a black box
 - **Regeneration with constraints** — users can nudge the plan ("cheaper," "less driving," "no seafood") and get a revised plan rather than starting over
 
-## Designs
-[link to Figma — add once mocks are ready]
+## Design Link ##
+
 
 ## Open Questions & Risks
 
