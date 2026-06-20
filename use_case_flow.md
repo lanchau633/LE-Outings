@@ -1,17 +1,22 @@
-**Use Case Flow: Planning a Friday Hangout**
+**USE CASE FLOW**
 
-1. Group setup (one-time) — Maya creates a group called "Weekend Crew" and invites 5 friends. Each friend joins and fills out a quick profile: weekly availability, dietary restrictions (e.g. Priya is vegetarian), food cravings (e.g. "always down for Korean food"), and transportation status (e.g. Jake has a car Thurs-Sun, two friends don't drive).
+Create base profile — User signs up and sets a username, dietary restrictions, and transportation status (has car or not).
 
-2. Plan request — Maya opens the group, picks "Irvine/Tustin area" as the location, and hits "Plan something." She can optionally add a note like "casual dinner, nothing too expensive."
+Create group — A group leader creates a group, names it, adds members by username, and sets a destination city plus a mile radius around it (e.g. "within 15 
+miles of Irvine").
 
-3. AI gathers constraints — Behind the scenes, the AI pulls everyone's availability (finds Friday 6-9pm as the best overlap), dietary restrictions (1 vegetarian), cravings (Korean food mentioned twice), and transportation (1 car, 4 passengers, fits everyone).
+Members fill event profile — Once added to the group, each member fills out an event-specific profile: 10-day availability, personal budget, optional food cravings, and an optional specific activity request (e.g. "bowling").
 
-4. AI generates the plan — It searches for Korean restaurants in the area with solid vegetarian options, checks they're open during the window, and assembles a plan: restaurant name + address, 6:30pm timeslot, a note that the menu has clear veggie options for Priya, and a transportation breakdown (Jake drives everyone in his car, fits 5).
+Plan auto-generates — Once all members have submitted their event profile, the AI plan generation runs automatically and posts the result to the group tab, no manual trigger needed.
 
-5. Plan shown to group with reasoning — Everyone sees the plan with short explanations: "Picked 6:30pm since that's when everyone's free," "This spot has marked vegetarian dishes for Priya," "Jake's car covers everyone, no second car needed."
+AI gathers and merges inputs — Behind the scenes, the AI finds the best overlapping day within the 10-day window, averages everyone's budget, and checks who has a car to build a transportation plan.
 
-6. Adjust if needed — If someone objects (too pricey, etc.), Maya taps "regenerate" with a constraint like "cheaper" and the AI returns a revised plan instead of starting the whole conversation over.
+Plan posted with reasoning — The group sees the generated plan (location, time, food, transportation) along with short explanations for each choice, e.g. "Picked 7pm since that's when everyone's free."
 
-7. Plan locked in — Group confirms, plan is saved/visible to everyone, hangout happens without anyone having had to do the legwork.
+Regenerate if needed — If the group wants changes, anyone can nudge the plan with a constraint like "cheaper" or "less driving," and the AI returns a revised plan instead of starting over (loops back to step 5).
 
-![Use Case Flow Visualization](https://media.discordapp.net/attachments/1427139176515502233/1517963729520820284/image.png?ex=6a383163&is=6a36dfe3&hm=cf6cdb1604db4db9ba4377aa91dc83c1b1ae678de42f5b191dfdabc543d8bb4a&=&format=webp&quality=lossless&width=706&height=826)
+Plan locked in — Once the group is happy with it, the plan is saved and visible to everyone in the group tab.
+
+
+
+![Use Case Flow Visualization](https://cdn.discordapp.com/attachments/1427139176515502233/1518003696737325156/image.png?ex=6a38569c&is=6a37051c&hm=b593b1891a2a0a94ae9100da6d626ddc0d70922893a0e2718618f05cef471a2c&)
