@@ -1,73 +1,90 @@
 # LE-Outings — local app
 
-AI group hangout planner. React (Vite) frontend + Node/Express backend.
+AI group hangout planner. **React (Vite) frontend → Supabase (Postgres + Auth) + an Edge Function for AI.**
 Built from `../LE-Outings_PRD.md` + `../use_case_flow.md` + the Figma Make UI.
 
 ```
+Browser (you)      ─┐
+                    ├─→  Supabase ── Postgres   (shared accounts + groups + plans)
+Browser (partner)  ─┘             └─ Edge Function "generate-plan" (holds ANTHROPIC_API_KEY)
+
 app/
-  server/   Express API + JSON store + Claude plan generation  → :8787
-  web/      Vite + React + Tailwind, mobile UI                  → :5173
+  web/        Vite + React + TS + Tailwind UI  →  talks directly to Supabase
+  supabase/   migrations/0001_init.sql  +  functions/generate-plan
+  server/     LEGACY local-only Express+JSON backend (no longer used by the app)
 ```
 
-## 1. API keys
+Both of you point at the **same Supabase project**, so you share one database. Logins are
+**username + password** (mapped to a synthetic `username@le-outings.app` email so Supabase Auth
+can handle password security; you never type an email).
 
-| Key | Required? | Where | Used for |
-|-----|-----------|-------|----------|
-| `ANTHROPIC_API_KEY` | **YES** | console.anthropic.com → API Keys | AI plan generation. Web search for niche-place discovery runs server-side through this same key. |
-| `GOOGLE_PLACES_API_KEY` | optional | console.cloud.google.com | reserved for venue validation (not wired yet) |
-| `YELP_API_KEY` | optional | yelp.com/developers | reserved for dietary attributes (not wired yet) |
+---
 
-Only `ANTHROPIC_API_KEY` is needed to run the full demo. Web search uses Claude's
-built-in server tool — no separate search key required.
+## Setup (one-time, ~10 min)
 
-## 2. Configure
+### 1. Create the Supabase project
+- Go to **supabase.com** → New project (free tier). Pick a region near you.
+- **Settings → API** → copy the **Project URL** and the **anon public** key.
 
+### 2. ⚠ Disable email confirmation (required)
+**Authentication → Providers → Email → turn OFF “Confirm email” → Save.**
+Synthetic-email signups can't click a confirmation link, so this must be off.
+
+### 3. Create the database tables
+Easiest: **SQL Editor → New query →** paste all of `supabase/migrations/0001_init.sql` → Run.
+
+(Or with the CLI: `npm i -g supabase`, `supabase login`, `supabase link --project-ref <ref>`, `supabase db push`.)
+
+### 4. Deploy the AI Edge Function
 ```sh
-cd server
-cp .env.example .env       # PowerShell: copy .env.example .env
-# edit .env → paste ANTHROPIC_API_KEY=sk-ant-...
+npm i -g supabase
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...     # required
+# optional: supabase secrets set MODEL=claude-sonnet-4-6 USE_WEB_SEARCH=true
+supabase functions deploy generate-plan
 ```
+(`SUPABASE_URL` / `SUPABASE_SERVICE_ROLE_KEY` are injected automatically — don't set them.)
 
-`MODEL` defaults to `claude-sonnet-4-6` (fast/cheap). Use `claude-opus-4-8` for best
-reasoning. `USE_WEB_SEARCH=false` disables live search if you want zero-cost runs.
-
-## 3. Run (two terminals)
-
+### 5. Point the frontend at Supabase
 ```sh
-# terminal 1 — backend
-cd app/server
-npm install
-npm run dev            # http://localhost:8787
-
-# terminal 2 — frontend
 cd app/web
+cp .env.example .env        # PowerShell: copy .env.example .env
+# edit .env:
+#   VITE_SUPABASE_URL=https://<ref>.supabase.co
+#   VITE_SUPABASE_ANON_KEY=eyJhbGci...
 npm install
-npm run dev            # http://localhost:5173  ← open this
+npm run dev                 # http://localhost:5173
 ```
 
-Vite proxies `/api/*` → `:8787`, so just open **http://localhost:5173**.
+---
 
-## 4. Demo flow
+## Sharing with your partner
+The **anon key is safe to share** (it's public; Row-Level Security protects the data).
+Your partner just needs the **same two values in their own `web/.env`**:
+1. They clone the repo, `cd app/web`, `npm install`.
+2. Paste the **same** `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY`.
+3. `npm run dev` → they're on the **same shared database**.
 
-1. Onboard: username → dietary → car (creates base profile).
-2. Home → add friends by username (open the app in another browser/incognito to
-   create teammates), or make a **solo group**.
-3. Create group: name, destination city, mile radius, optional note, invite friends.
-4. Each member opens the group → **Fill event profile** (10-day availability, budget,
-   cravings, activity).
-5. When the last member submits, the plan **auto-generates** and posts to the group tab.
-6. Tweak with quick chips ("Cheaper", "Less driving") or free text → instant regenerate.
+(Or deploy `web/` to Vercel/Netlify once and you both use the hosted URL — set the two env vars there.)
 
-## Data & reset
+---
 
-State persists to `server/data/db.json` (gitignored). Delete it to wipe all
-users/groups/plans.
+## API keys — what you actually need
+| Key | Required? | Where it goes |
+|-----|-----------|---------------|
+| Supabase Project URL + anon key | **YES** | `web/.env` (frontend) |
+| `ANTHROPIC_API_KEY` | **YES** (for plans) | Supabase secret on the Edge Function — never in the browser |
+| `GOOGLE_PLACES_API_KEY` / `YELP_API_KEY` | optional | reserved for venue validation, not wired |
 
-## Notes / scope
+Web search for niche-place discovery is Claude's built-in server tool — **no separate search key**.
 
-- No real auth — "current user" = the username you onboard with (localStorage).
-  Multiple users on one machine: use separate browsers/incognito windows.
-- Matches PRD v1 scope: base + event profiles, add-by-username, group creation with
-  city+radius, auto-generate on full submission, budget averaging, car-based transport,
-  reasoning shown, constrained regeneration. Out of scope (chat, payments, calendar
-  sync, multi-day, native mobile) intentionally omitted.
+## Demo flow
+1. **Sign up** (username + password) → dietary → car. 2. **Home →** add friends by username.
+3. **Create group** (name, city, radius, note, invite). 4. Each member opens the group → **fill event profile**.
+5. Last submission **auto-generates** the plan via the Edge Function. 6. **Tweak** ("Cheaper", "Less driving") → instant regenerate.
+
+## Notes
+- `server/` (Express + JSON) is the old local-only version, kept for reference. The live app no longer uses it.
+- RLS in the migration is **hackathon-grade** (authenticated users can read all rows). Tighten before any real launch.
+- Reset data: delete rows in the Supabase Table Editor, or drop & re-run the migration.

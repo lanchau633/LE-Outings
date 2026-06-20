@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "./api";
+import { auth } from "./auth";
+import { isConfigured } from "./supabase";
 import { Avatar, BottomNav, Button, Card, PhoneFrame, TopBar, type Tab } from "./ui";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
@@ -10,8 +12,6 @@ import { Profile } from "./screens/Profile";
 import { PlanView } from "./screens/PlanView";
 import type { Group, Plan, User } from "./types";
 
-const LS_KEY = "le-outings-user";
-
 export default function App() {
   const [me, setMe] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,16 +19,13 @@ export default function App() {
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [groupMode, setGroupMode] = useState<"detail" | "event">("detail");
-  const [aiReady, setAiReady] = useState(true);
 
-  // restore session
+  // restore Supabase session
   useEffect(() => {
-    const saved = localStorage.getItem(LS_KEY);
     (async () => {
       try {
-        await api.health().then((h) => setAiReady(h.ai)).catch(() => setAiReady(false));
-        if (saved) {
-          const u = await api.getUser(saved).catch(() => null);
+        if (isConfigured) {
+          const u = await auth.getMyProfile().catch(() => null);
           if (u) setMe(u);
         }
       } finally {
@@ -38,12 +35,11 @@ export default function App() {
   }, []);
 
   function login(u: User) {
-    localStorage.setItem(LS_KEY, u.username);
     setMe(u);
     setTab("home");
   }
-  function logout() {
-    localStorage.removeItem(LS_KEY);
+  async function logout() {
+    await auth.signOut();
     setMe(null);
   }
 
@@ -69,6 +65,11 @@ export default function App() {
   if (!me)
     return (
       <PhoneFrame>
+        {!isConfigured && (
+          <div className="mx-5 mt-2 text-xs text-purple bg-purple/10 border border-purple/30 rounded-xl px-3 py-2 shrink-0">
+            ⚠ Supabase not configured — set VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in web/.env, then restart the dev server.
+          </div>
+        )}
         <Onboarding onDone={login} />
       </PhoneFrame>
     );
@@ -86,9 +87,9 @@ export default function App() {
         }
       />
 
-      {!aiReady && (
+      {!isConfigured && (
         <div className="mx-5 mb-2 text-xs text-purple bg-purple/10 border border-purple/30 rounded-xl px-3 py-2 shrink-0">
-          ⚠ ANTHROPIC_API_KEY not set on server — plans won't generate. Add it to server/.env.
+          ⚠ Supabase not configured — set VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY in web/.env, then restart.
         </div>
       )}
 

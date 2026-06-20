@@ -1,0 +1,113 @@
+// Supabase Edge Function — AI plan generation.
+// Holds ANTHROPIC_API_KEY as a secret; the browser never sees it.
+// Deploy:  supabase functions deploy generate-plan
+// Secret:  supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+//          (optional) supabase secrets set MODEL=claude-sonnet-4-6 USE_WEB_SEARCH=true
+import { createClient } from "jsr:@supabase/supabase-js@2";
+import Anthropic from "npm:@anthropic-ai/sdk@0.65.0";
+
+const MODEL = Deno.env.get("MODEL") || "claude-sonnet-4-6";
+const USE_WEB_SEARCH = (Deno.env.get("USE_WEB_SEARCH") || "true") === "true";
+
+const cors = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+const SYSTEM = `You are the planning engine for LE-Outings, an app that turns a friend group's individual constraints into ONE concrete hangout plan.
+
+Rules:
+- Pick the single best day inside the submitted 10-day availability window using maximum overlap. State who is free / not free.
+- Merge budgets by AVERAGING, but if the spread is wide (min < half of max) flag it and bias toward the lower end. Never silently exclude the lowest-budget member.
+- Dietary restrictions are hard constraints. If a venue can't accommodate someone, say so explicitly. If you can't verify a menu, label the suggestion an estimate based on cuisine.
+- Build a transportation plan from who hasCar (+ seats). Assign drivers and who rides with whom. Flag if there aren't enough seats.
+- Prefer niche, highly-rated, lower-review-count local spots over obvious chains.
+- Honor the destination city + mile radius and any group note / regeneration constraint.
+- Explain WHY for each major choice in short plain sentences.
+
+Output: after any research, end with ONE fenced json block (\`\`\`json ... \`\`\`) and nothing after it, matching:
+{
+  "title": "string", "day": "string", "time": "string",
+  "venue": { "name": "string", "type": "string", "area": "string", "priceLevel": "$|$$|$$$", "why": "string" },
+  "alternates": [ { "name": "string", "why": "string" } ],
+  "food": { "note": "string", "averageBudget": number },
+  "transportation": { "summary": "string", "assignments": [ { "driver": "string", "riders": ["string"] } ], "note": "string" },
+  "reasoning": ["string"], "flags": ["string"]
+}`;
+
+function buildPrompt(group: any, members: any[], eventProfiles: Record<string, any>, constraint?: string) {
+  const lines = [
+    `GROUP: ${group.name}`,
+    `DESTINATION: within ${group.radius_miles} miles of ${group.city}`,
+  ];
+  if (group.note) lines.push(`GROUP NOTE: ${group.note}`);
+  lines.push("", "MEMBERS + EVENT PROFILES:");
+  for (const m of members) {
+    const p = eventProfiles[m.id] || {};
+    lines.push(
+      `- ${m.username}: dietary=[${(m.dietary || []).join(", ") || "none"}], ` +
+        `hasCar=${m.has_car ? `yes(${m.car_seats || 4} seats)` : "no"}, ` +
+        `availableDays=[${(p.availability || []).join(", ") || "none submitted"}], ` +
+        `budget=$${p.budget ?? "?"}, cravings=[${(p.cravings || []).join(", ") || "none"}], ` +
+        `activity=${p.activity || "none"}`
+    );
+  }
+  if (constraint) lines.push("", `REGENERATION CONSTRAINT: "${constraint}" — revise the plan accordingly.`);
+  return lines.join("\n");
+}
+
+function extractJson(text: string) {
+  const fences = [...text.matchAll(/```json\s*([\s\S]*?)```/g)];
+  const raw = fences.length
+    ? fences[fences.length - 1][1]
+    : text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return { title: "Plan", reasoning: ["Could not parse model output."], flags: ["parse_error"], raw: text };
+  }
+}
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  try {
+    const { groupId, constraint } = await req.json();
+    if (!groupId) throw new Error("groupId required");
+
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+    );
+
+    const { data: group } = await supabase.from("groups").select("*").eq("id", groupId).single();
+    if (!group) throw new Error("group not found");
+
+    const { data: gm } = await supabase.from("group_members").select("user_id").eq("group_id", groupId);
+    const ids = (gm || []).map((r) => r.user_id);
+    const { data: members } = await supabase.from("profiles").select("*").in("id", ids);
+    const { data: eps } = await supabase.from("event_profiles").select("*").eq("group_id", groupId);
+    const epMap: Record<string, any> = {};
+    for (const e of eps || []) epMap[e.user_id] = e;
+
+    const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
+    const resp = await anthropic.messages.create({
+      model: MODEL,
+      max_tokens: 2000,
+      system: SYSTEM,
+      tools: USE_WEB_SEARCH ? [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }] : undefined,
+      messages: [{ role: "user", content: buildPrompt(group, members || [], epMap, constraint) }],
+    });
+
+    const text = resp.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+    const plan = { ...extractJson(text), generatedAt: Date.now(), constraint: constraint || null, model: MODEL };
+
+    await supabase.from("groups").update({ plan }).eq("id", groupId);
+    return new Response(JSON.stringify({ plan }), { headers: { ...cors, "Content-Type": "application/json" } });
+  } catch (e) {
+    return new Response(JSON.stringify({ error: (e as Error).message }), {
+      status: 500,
+      headers: { ...cors, "Content-Type": "application/json" },
+    });
+  }
+});
