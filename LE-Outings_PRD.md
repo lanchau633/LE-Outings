@@ -22,7 +22,7 @@ There's no lightweight tool built specifically for casual friend groups that han
   - **Base user profile** (set once): name, unique username, dietary restrictions, transportation status (has car or not)
   - **Event profile** (set per group/event): 10-day availability, personal budget, food cravings (optional), specific event/activity request (optional, e.g. "bowling")
 - Add friends by unique username (home screen)
-- Group creation: group leader names the group, adds members (by username or from friends list), sets a destination city and mile radius around it
+- Group creation: group leader names the group, invites members (by username or from friends list), sets a destination city and mile radius around it
 - Solo groups supported, for individuals/families using the app to explore a new area while traveling
 - AI-generated plan: triggered once all members submit their event profile, posted to the group tab
   - Cross-references all event profiles to output a single proposed plan: location, time, food/venue suggestions, transportation assignments
