@@ -9,6 +9,10 @@ What we're building: an AI-powered group planning app that takes the burden of o
 - Support groups with overlapping availability and at least one dietary restriction, with the AI correctly accounting for all of them
 - Demo a full flow end-to-end (create group → members fill profiles → generate plan) live, without manual intervention
 
+## Application Context
+
+For the purposes of the hackathon, we want to locally host the app. But for the overall app, we want it to be used as a mobile phone app.
+
 ## Problem Statement
 
 Planning a hangout with friends is harder than it should be. Everyone says they're free, nobody picks a time or place, and the actual planning work (checking everyone's schedule, finding food everyone can eat, figuring out who's driving) ends up falling on one person every time. This leads to hangouts not happening, or happening less often than the group actually wants.
