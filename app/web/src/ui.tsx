@@ -1,0 +1,190 @@
+import type { ReactNode } from "react";
+
+export type Tab = "home" | "group" | "profile" | "plan";
+
+/* ---------- phone frame ---------- */
+export function PhoneFrame({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen w-full flex items-center justify-center p-4">
+      <div className="relative w-[400px] h-[820px] max-h-[95vh] rounded-[44px] bg-bg border border-line shadow-2xl overflow-hidden flex flex-col">
+        {/* status bar */}
+        <div className="flex items-center justify-between px-7 pt-4 pb-2 text-sm shrink-0">
+          <span className="font-semibold">9:41</span>
+          <div className="h-6 w-28 rounded-full bg-black/60 border border-line" />
+          <div className="flex items-center gap-1">
+            <span className="text-xs">▦</span>
+            <span className="inline-block h-3 w-6 rounded-sm bg-lime" />
+          </div>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export function TopBar({ onBack, right }: { onBack?: () => void; right?: ReactNode }) {
+  return (
+    <div className="flex items-center justify-between px-5 py-3 shrink-0">
+      {onBack ? (
+        <button
+          onClick={onBack}
+          className="h-11 w-11 rounded-full bg-surface border border-line grid place-items-center text-lg"
+        >
+          ←
+        </button>
+      ) : (
+        <div className="h-11 w-11" />
+      )}
+      <div className="display text-2xl tracking-tight">
+        LE<span className="text-lime">·</span>OUTINGS
+      </div>
+      {right ?? <div className="h-11 w-11" />}
+    </div>
+  );
+}
+
+export function Avatar({ name, className = "" }: { name: string; className?: string }) {
+  const initials = name.slice(0, 2).toUpperCase();
+  return (
+    <div
+      className={`h-11 w-11 rounded-full bg-mint text-black grid place-items-center font-bold text-sm ${className}`}
+    >
+      {initials}
+    </div>
+  );
+}
+
+/* ---------- buttons ---------- */
+export function Button({
+  children,
+  onClick,
+  disabled,
+  variant = "primary",
+  className = "",
+  type = "button",
+}: {
+  children: ReactNode;
+  onClick?: () => void;
+  disabled?: boolean;
+  variant?: "primary" | "ghost" | "purple";
+  className?: string;
+  type?: "button" | "submit";
+}) {
+  const base =
+    "w-full rounded-full py-4 font-bold text-base transition active:scale-[0.98] disabled:opacity-40 disabled:active:scale-100";
+  const styles = {
+    primary: "bg-lime text-black",
+    purple: "bg-purple text-white",
+    ghost: "bg-surface border border-line text-white",
+  }[variant];
+  return (
+    <button type={type} onClick={onClick} disabled={disabled} className={`${base} ${styles} ${className}`}>
+      {children}
+    </button>
+  );
+}
+
+/* ---------- selectable pill chip ---------- */
+export function Chip({
+  label,
+  active,
+  onClick,
+  color = "purple",
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  color?: "purple" | "lime";
+}) {
+  const on =
+    color === "lime"
+      ? "bg-lime/15 border-lime text-lime"
+      : "bg-purple border-purple text-white";
+  return (
+    <button
+      onClick={onClick}
+      className={`px-5 py-3 rounded-full border text-[15px] font-medium transition ${
+        active ? on : "bg-surface border-line text-white/80"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
+  return <div className={`bg-card border border-line rounded-3xl p-5 ${className}`}>{children}</div>;
+}
+
+export function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="block">
+      <div className="display text-xs text-muted mb-2 tracking-widest">{label}</div>
+      {children}
+    </label>
+  );
+}
+
+export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <input
+      {...props}
+      className={`w-full bg-surface border border-line rounded-2xl px-4 py-3.5 text-white placeholder:text-muted outline-none focus:border-purple ${
+        props.className ?? ""
+      }`}
+    />
+  );
+}
+
+export function Note({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex gap-3 bg-surface border border-line rounded-2xl p-4 text-sm text-muted">
+      <span className="text-purple shrink-0">ⓘ</span>
+      <span>{children}</span>
+    </div>
+  );
+}
+
+export function Spinner() {
+  return <span className="inline-block h-4 w-4 rounded-full border-2 border-black/30 border-t-black spin" />;
+}
+
+/* ---------- bottom nav ---------- */
+const NAV: { id: Tab; label: string; icon: string }[] = [
+  { id: "home", label: "HOME", icon: "⌂" },
+  { id: "group", label: "GROUP", icon: "👥" },
+  { id: "profile", label: "PROFILE", icon: "👤" },
+  { id: "plan", label: "PLAN", icon: "✦" },
+];
+export function BottomNav({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+  return (
+    <div className="shrink-0 border-t border-line bg-bg px-4 py-2 flex items-center justify-around">
+      {NAV.map((n) => {
+        const active = tab === n.id;
+        return (
+          <button key={n.id} onClick={() => setTab(n.id)} className="flex flex-col items-center gap-1 py-1 w-16">
+            <span
+              className={`h-9 w-9 grid place-items-center rounded-full text-base ${
+                active ? "bg-lime text-black" : "text-muted"
+              }`}
+            >
+              {n.icon}
+            </span>
+            <span className={`display text-[10px] tracking-widest ${active ? "text-lime" : "text-muted"}`}>
+              {n.label}
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function ProgressBar({ value, total }: { value: number; total: number }) {
+  const pct = total ? Math.round((value / total) * 100) : 0;
+  return (
+    <div className="h-2.5 w-full rounded-full bg-surface overflow-hidden">
+      <div className="h-full bg-lime rounded-full transition-all" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}

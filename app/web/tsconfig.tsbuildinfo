@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/api.ts","./src/constants.ts","./src/main.tsx","./src/types.ts","./src/ui.tsx","./src/screens/creategroup.tsx","./src/screens/eventprofile.tsx","./src/screens/groupscreen.tsx","./src/screens/home.tsx","./src/screens/onboarding.tsx","./src/screens/planview.tsx","./src/screens/profile.tsx"],"version":"5.9.3"}
