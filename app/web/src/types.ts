@@ -53,6 +53,7 @@ export type Group = {
   city: string;
   radiusMiles: number;
   note: string;
+  maxHours: number;
   longDistance: boolean;
   planStatus: "idle" | "generating" | "ready";
   members: string[];

@@ -51,6 +51,7 @@ async function hydrateGroup(g: any): Promise<Group> {
     city: g.city,
     radiusMiles: g.radius_miles,
     note: g.note ?? "",
+    maxHours: g.max_hours ?? 6,
     longDistance: g.long_distance ?? false,
     planStatus: (g.plan_status ?? "idle") as Group["planStatus"],
     members: memberProfiles.map((m) => m.username),
@@ -119,12 +120,20 @@ export const api = {
     city: string;
     radiusMiles: number;
     note?: string;
+    maxHours?: number;
     members: string[];
   }): Promise<Group> {
     const id = await myId();
     const { data: grp, error } = await supabase
       .from("groups")
-      .insert({ name: g.name, leader_id: id, city: g.city, radius_miles: g.radiusMiles, note: g.note ?? "" })
+      .insert({
+        name: g.name,
+        leader_id: id,
+        city: g.city,
+        radius_miles: g.radiusMiles,
+        note: g.note ?? "",
+        max_hours: g.maxHours ?? 6,
+      })
       .select()
       .single();
     if (error) die(error.message);

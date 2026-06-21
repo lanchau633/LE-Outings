@@ -13,6 +13,7 @@ export function CreateGroup({
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [radius, setRadius] = useState(15);
+  const [maxHours, setMaxHours] = useState(6);
   const [note, setNote] = useState("");
   const [friends, setFriends] = useState<User[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
@@ -35,6 +36,7 @@ export function CreateGroup({
         leader: me.username,
         city: city.trim(),
         radiusMiles: radius,
+        maxHours,
         note: note.trim(),
         members: picked,
       });
@@ -65,6 +67,23 @@ export function CreateGroup({
             onChange={(e) => setRadius(Number(e.target.value))}
             className="w-full accent-lime"
           />
+        </Field>
+        <Field label={`TIME OUT — up to ${maxHours} ${maxHours === 1 ? "hour" : "hours"}`}>
+          <input
+            type="range"
+            min={1}
+            max={12}
+            value={maxHours}
+            onChange={(e) => setMaxHours(Number(e.target.value))}
+            className="w-full accent-lime"
+          />
+          <div className="flex justify-between text-xs text-muted mt-1">
+            <span>1h</span>
+            <span>12h</span>
+          </div>
+          <p className="text-muted text-xs mt-1">
+            How long the group can be out. If everything won't fit, the AI lists the rest as alternates.
+          </p>
         </Field>
         <Field label="NOTE / LABEL (OPTIONAL)">
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Birthday trip" />
