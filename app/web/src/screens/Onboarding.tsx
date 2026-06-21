@@ -33,27 +33,48 @@ function Login({ onDone, toSignup }: { onDone: (u: User) => void; toSignup: () =
   }
 
   return (
-    <div className="flex-1 flex flex-col px-6 pt-6 pb-8">
-      <div className="display text-4xl mb-1">
+    <div className="flex-1 flex flex-col px-6 pt-4 pb-8">
+      {/* Logo */}
+      <div className="display text-2xl mb-5">
         LE<span className="text-lime">·</span>OUTINGS
       </div>
-      <p className="text-muted mb-10">Welcome back.</p>
 
-      <div className="space-y-3">
-        <input
-          value={username}
-          onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
-          placeholder="username"
-          className="w-full bg-surface border border-line rounded-2xl px-4 py-4 text-lg outline-none focus:border-purple"
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          placeholder="password"
-          onKeyDown={(e) => e.key === "Enter" && go()}
-          className="w-full bg-surface border border-line rounded-2xl px-4 py-4 text-lg outline-none focus:border-purple"
-        />
+      {/* Progress bar — 3 segments, first active */}
+      <div className="flex gap-2 mb-8">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className={`h-1 flex-1 rounded-full ${i === 0 ? "bg-lime" : "bg-surface"}`} />
+        ))}
+      </div>
+
+      {/* Heading */}
+      <h1 className="display text-4xl leading-[1.05] mb-2">WELCOME BACK.</h1>
+      <p className="text-muted text-sm mb-8">Sign in to see what's planned.</p>
+
+      {/* Fields */}
+      <div className="space-y-5">
+        <div>
+          <div className="display text-xs text-muted tracking-widest mb-2">USERNAME</div>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-muted font-medium">@</span>
+            <input
+              value={username}
+              onChange={(e) => setUsername(e.target.value.replace(/\s/g, ""))}
+              placeholder="yourname"
+              className="w-full bg-card border border-transparent rounded-2xl pl-9 pr-4 py-4 text-base text-white placeholder:text-muted outline-none focus:border-purple transition"
+            />
+          </div>
+        </div>
+        <div>
+          <div className="display text-xs text-muted tracking-widest mb-2">PASSWORD</div>
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="••••••••"
+            onKeyDown={(e) => e.key === "Enter" && go()}
+            className="w-full bg-card border border-transparent rounded-2xl px-4 py-4 text-base text-white placeholder:text-muted outline-none focus:border-purple transition"
+          />
+        </div>
       </div>
 
       <div className="flex-1" />
@@ -161,35 +182,60 @@ function Signup({ onDone, toLogin }: { onDone: (u: User) => void; toLogin: () =>
       {step === 2 && (
         <div className="flex-1 flex flex-col">
           <h1 className="display text-4xl leading-[1.05] mb-3">Do you have a car?</h1>
-          <p className="text-muted mb-6">Used to build the carpool plan for the group.</p>
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <p className="text-muted mb-6">Used to assign transportation — who drives, who rides.</p>
+
+          <div className="space-y-3 mb-6">
+            {/* Yes option */}
             <button
               onClick={() => setHasCar(true)}
-              className={`rounded-2xl py-6 border font-bold ${hasCar ? "bg-lime/15 border-lime text-lime" : "bg-surface border-line"}`}
+              className={`w-full flex items-center gap-4 bg-card rounded-2xl px-4 py-4 border transition ${hasCar ? "border-lime/60" : "border-transparent"}`}
             >
-              🚗 Yes
+              <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${hasCar ? "bg-lime/15" : "bg-surface"}`}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={hasCar ? "text-lime" : "text-muted"}>
+                  <path d="M5 17H3a2 2 0 0 1-2-2v-4l2.5-6h13L19 11v4a2 2 0 0 1-2 2h-2" />
+                  <circle cx="7.5" cy="17.5" r="2.5" />
+                  <circle cx="16.5" cy="17.5" r="2.5" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <div className={`font-semibold text-base ${hasCar ? "text-white" : "text-white/80"}`}>Yes, I have a car</div>
+                <div className="text-muted text-sm">I'm available to drive for the group</div>
+              </div>
             </button>
+
+            {/* No option */}
             <button
               onClick={() => setHasCar(false)}
-              className={`rounded-2xl py-6 border font-bold ${!hasCar ? "bg-purple border-purple text-white" : "bg-surface border-line"}`}
+              className={`w-full flex items-center gap-4 bg-card rounded-2xl px-4 py-4 border transition ${!hasCar ? "border-purple/60" : "border-transparent"}`}
             >
-              🚶 No
+              <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${!hasCar ? "bg-purple/15" : "bg-surface"}`}>
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={!hasCar ? "text-purple" : "text-muted"}>
+                  <circle cx="12" cy="5" r="2" />
+                  <path d="M12 7v6l-3 3M12 13l3 3" />
+                  <path d="M9 21h6" />
+                </svg>
+              </div>
+              <div className="text-left">
+                <div className={`font-semibold text-base ${!hasCar ? "text-white" : "text-white/80"}`}>No car</div>
+                <div className="text-muted text-sm">I'll need a ride or use transit</div>
+              </div>
             </button>
           </div>
-          {hasCar && (
-            <div className="mb-6">
-              <div className="display text-xs text-muted mb-2 tracking-widest">SEATS (incl. you)</div>
-              <div className="flex items-center gap-4">
-                <button onClick={() => setCarSeats((s) => Math.max(2, s - 1))} className="h-12 w-12 rounded-full bg-surface border border-line text-xl">−</button>
-                <span className="text-2xl font-bold w-10 text-center">{carSeats}</span>
-                <button onClick={() => setCarSeats((s) => Math.min(8, s + 1))} className="h-12 w-12 rounded-full bg-surface border border-line text-xl">+</button>
-              </div>
-            </div>
-          )}
+
+          {/* Info note */}
+          <div className="flex gap-3 bg-card rounded-2xl px-4 py-3 text-sm text-muted border border-transparent">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-muted shrink-0 mt-0.5">
+              <path d="M5 17H3a2 2 0 0 1-2-2v-4l2.5-6h13L19 11v4a2 2 0 0 1-2 2h-2" />
+              <circle cx="7.5" cy="17.5" r="2.5" />
+              <circle cx="16.5" cy="17.5" r="2.5" />
+            </svg>
+            <span>No per-day granularity needed — if you have a car, the AI assumes you're available to drive for any outing you're part of.</span>
+          </div>
+
           <div className="flex-1" />
           {err && <p className="text-red-400 text-sm mb-3">{err}</p>}
           <Button disabled={busy} onClick={finish}>
-            {busy ? "CREATING…" : "CREATE ACCOUNT"}
+            {busy ? "CREATING…" : "SET UP MY PROFILE"}
           </Button>
         </div>
       )}

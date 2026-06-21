@@ -64,22 +64,53 @@ export function Profile({
 
       <Card className="mb-6">
         <div className="display text-xs text-muted mb-3 tracking-widest">TRANSPORTATION</div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={() => setHasCar(true)} className={`rounded-2xl py-4 border font-bold ${hasCar ? "bg-lime/15 border-lime text-lime" : "bg-surface border-line"}`}>
-            🚗 Has car
+        <div className="space-y-3 mb-3">
+          {/* Yes option */}
+          <button
+            onClick={() => setHasCar(true)}
+            className={`w-full flex items-center gap-4 bg-bg rounded-2xl px-4 py-4 border transition ${hasCar ? "border-lime/60" : "border-transparent"}`}
+          >
+            <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${hasCar ? "bg-lime/15" : "bg-surface"}`}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={hasCar ? "text-lime" : "text-muted"}>
+                <path d="M5 17H3a2 2 0 0 1-2-2v-4l2.5-6h13L19 11v4a2 2 0 0 1-2 2h-2" />
+                <circle cx="7.5" cy="17.5" r="2.5" />
+                <circle cx="16.5" cy="17.5" r="2.5" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <div className={`font-semibold text-base ${hasCar ? "text-white" : "text-white/80"}`}>Yes, I have a car</div>
+              <div className="text-muted text-sm">I'm available to drive for the group</div>
+            </div>
           </button>
-          <button onClick={() => setHasCar(false)} className={`rounded-2xl py-4 border font-bold ${!hasCar ? "bg-purple border-purple text-white" : "bg-surface border-line"}`}>
-            🚶 No car
+
+          {/* No option */}
+          <button
+            onClick={() => setHasCar(false)}
+            className={`w-full flex items-center gap-4 bg-bg rounded-2xl px-4 py-4 border transition ${!hasCar ? "border-purple/60" : "border-transparent"}`}
+          >
+            <div className={`h-11 w-11 rounded-full flex items-center justify-center shrink-0 ${!hasCar ? "bg-purple/15" : "bg-surface"}`}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={!hasCar ? "text-purple" : "text-muted"}>
+                <circle cx="12" cy="5" r="2" />
+                <path d="M12 7v6l-3 3M12 13l3 3" />
+                <path d="M9 21h6" />
+              </svg>
+            </div>
+            <div className="text-left">
+              <div className={`font-semibold text-base ${!hasCar ? "text-white" : "text-white/80"}`}>No car</div>
+              <div className="text-muted text-sm">I'll need a ride or use transit</div>
+            </div>
           </button>
         </div>
-        {hasCar && (
-          <div className="flex items-center gap-4 mt-4">
-            <span className="text-sm text-muted">Seats</span>
-            <button onClick={() => setCarSeats((s) => Math.max(2, s - 1))} className="h-10 w-10 rounded-full bg-surface border border-line">−</button>
-            <span className="text-xl font-bold w-8 text-center">{carSeats}</span>
-            <button onClick={() => setCarSeats((s) => Math.min(8, s + 1))} className="h-10 w-10 rounded-full bg-surface border border-line">+</button>
-          </div>
-        )}
+
+        {/* Info note */}
+        <div className="flex gap-3 bg-bg rounded-2xl px-4 py-3 text-sm text-muted">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="text-muted shrink-0 mt-0.5">
+            <path d="M5 17H3a2 2 0 0 1-2-2v-4l2.5-6h13L19 11v4a2 2 0 0 1-2 2h-2" />
+            <circle cx="7.5" cy="17.5" r="2.5" />
+            <circle cx="16.5" cy="17.5" r="2.5" />
+          </svg>
+          <span>No per-day granularity needed — if you have a car, the AI assumes you're available to drive for any outing you're part of.</span>
+        </div>
       </Card>
 
       <Button disabled={busy} onClick={save}>

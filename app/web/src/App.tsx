@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api } from "./api";
 import { auth } from "./auth";
 import { isConfigured } from "./supabase";
-import { Avatar, BottomNav, Button, Card, PhoneFrame, TopBar, type Tab } from "./ui";
+import { Avatar, Button, Card, PhoneFrame, TopBar, type Tab } from "./ui";
 import { Onboarding } from "./screens/Onboarding";
 import { Home } from "./screens/Home";
 import { CreateGroup } from "./screens/CreateGroup";
@@ -16,6 +16,7 @@ export default function App() {
   const [me, setMe] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("home");
+  const [prevTab, setPrevTab] = useState<Tab>("home");
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [groupMode, setGroupMode] = useState<"detail" | "event">("detail");
@@ -74,14 +75,20 @@ export default function App() {
       </PhoneFrame>
     );
 
-  const showBack = (tab === "group" && (creating || groupMode === "event")) || (tab === "group" && selectedGroupId);
+  const showBack = tab === "profile" || (tab === "group" && (creating || groupMode === "event")) || (tab === "group" && selectedGroupId);
+
+  function handleBack() {
+    if (tab === "profile") { setTab(prevTab); return; }
+    if (creating || groupMode === "event") { setCreating(false); setGroupMode("detail"); return; }
+    home();
+  }
 
   return (
     <PhoneFrame>
       <TopBar
-        onBack={showBack ? () => (creating || groupMode === "event" ? (setCreating(false), setGroupMode("detail")) : home()) : undefined}
+        onBack={showBack ? handleBack : undefined}
         right={
-          <button onClick={() => setTab("profile")}>
+          <button onClick={() => { setPrevTab(tab); setTab("profile"); }}>
             <Avatar name={me.username} className="bg-mint" />
           </button>
         }
@@ -129,7 +136,6 @@ export default function App() {
       {/* ---- PLAN ---- */}
       {tab === "plan" && <PlanTab me={me} selectedGroupId={selectedGroupId} onOpen={openGroup} />}
 
-      <BottomNav tab={tab} setTab={(t) => (t === "home" ? home() : setTab(t))} />
     </PhoneFrame>
   );
 }
