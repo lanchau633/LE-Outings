@@ -66,8 +66,11 @@ export function CreateGroup({
             className="w-full accent-lime"
           />
         </Field>
-        <Field label="NOTE (OPTIONAL)">
-          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="casual dinner, nothing too expensive" />
+        <Field label="NOTE / LABEL (OPTIONAL)">
+          <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Birthday trip" />
+          <p className="text-muted text-xs mt-1">
+            Just a label shown to the group — the AI plans only from each member's event profile.
+          </p>
         </Field>
 
         <div>

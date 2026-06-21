@@ -51,6 +51,8 @@ async function hydrateGroup(g: any): Promise<Group> {
     city: g.city,
     radiusMiles: g.radius_miles,
     note: g.note ?? "",
+    longDistance: g.long_distance ?? false,
+    planStatus: (g.plan_status ?? "idle") as Group["planStatus"],
     members: memberProfiles.map((m) => m.username),
     eventProfiles,
     plan: g.plan ?? null,
@@ -162,6 +164,21 @@ export const api = {
     const uid = await profileIdByUsername(username);
     const { error } = await supabase.from("group_members").upsert({ group_id: id, user_id: uid });
     if (error) die(error.message);
+    // Bug #3: a plan made before this member joined is now stale. Mark it and
+    // unlock generation so it auto-regenerates once everyone re-submits.
+    const { data: g } = await supabase.from("groups").select("plan").eq("id", id).single();
+    if (g?.plan) {
+      await supabase
+        .from("groups")
+        .update({ plan: { ...g.plan, stale: true }, plan_status: "idle" })
+        .eq("id", id);
+    }
+    return api.getGroup(id);
+  },
+
+  async setLongDistance(id: string, longDistance: boolean): Promise<Group> {
+    const { error } = await supabase.from("groups").update({ long_distance: longDistance }).eq("id", id);
+    if (error) die(error.message);
     return api.getGroup(id);
   },
 
@@ -184,10 +201,25 @@ export const api = {
 
     const g = await api.getGroup(id);
     let generating = false;
-    if (g.submitted === g.total && g.total > 0 && !g.plan) {
-      generating = true;
-      // fire-and-forget; GroupScreen polls getGroup until plan appears
-      supabase.functions.invoke("generate-plan", { body: { groupId: id } });
+    const needsPlan = g.submitted === g.total && g.total > 0 && (!g.plan || g.plan.stale);
+    if (needsPlan) {
+      // Bug #4: atomically claim the generation. Flip idle/ready -> generating
+      // for exactly one caller; concurrent "last" submissions lose the race and
+      // skip the invoke, so the plan is generated once.
+      const { data: claimed } = await supabase
+        .from("groups")
+        .update({ plan_status: "generating" })
+        .eq("id", id)
+        .neq("plan_status", "generating")
+        .select("id");
+      if (claimed && claimed.length) {
+        generating = true;
+        // fire-and-forget; GroupScreen polls getGroup until the plan appears
+        supabase.functions.invoke("generate-plan", { body: { groupId: id } });
+      } else {
+        // someone else is already generating — reflect that in the UI
+        generating = g.planStatus === "generating";
+      }
     }
     return { ...g, generating };
   },

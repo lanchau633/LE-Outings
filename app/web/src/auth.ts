@@ -24,19 +24,40 @@ export const auth = {
     profile: { dietary: string[]; hasCar: boolean; carSeats: number }
   ): Promise<User> {
     const uname = username.toLowerCase().trim();
+
+    // Reject duplicate usernames up front (friendlier than the auth error).
+    const { data: existing } = await supabase.from("profiles").select("id").eq("username", uname).maybeSingle();
+    if (existing) throw new Error("That username is taken.");
+
+    // Create the auth user. If a prior signup created the auth user but failed
+    // before writing the profile (Bug #5), recover by signing into that orphan
+    // with the same password instead of erroring out.
+    let userId: string;
     const { data, error } = await supabase.auth.signUp({ email: toEmail(uname), password });
     if (error) {
-      if (/already registered/i.test(error.message)) throw new Error("That username is taken.");
-      throw new Error(error.message);
+      if (/already registered/i.test(error.message)) {
+        const { data: si, error: se } = await supabase.auth.signInWithPassword({
+          email: toEmail(uname),
+          password,
+        });
+        if (se || !si.user) throw new Error("That username is taken.");
+        userId = si.user.id;
+      } else {
+        throw new Error(error.message);
+      }
+    } else {
+      if (!data.session)
+        throw new Error(
+          "Account made but no session — disable “Confirm email” in Supabase → Authentication → Providers → Email, then sign in."
+        );
+      userId = data.user!.id;
     }
-    if (!data.session)
-      throw new Error(
-        "Account made but no session — disable “Confirm email” in Supabase → Authentication → Providers → Email, then sign in."
-      );
+
+    // Upsert (not insert) so the recovery path is idempotent.
     const { data: row, error: pErr } = await supabase
       .from("profiles")
-      .insert({
-        id: data.user!.id,
+      .upsert({
+        id: userId,
         username: uname,
         dietary: profile.dietary,
         has_car: profile.hasCar,
@@ -44,7 +65,11 @@ export const auth = {
       })
       .select()
       .single();
-    if (pErr) throw new Error(pErr.message);
+    if (pErr) {
+      // Don't leave the user signed into a half-made account.
+      await supabase.auth.signOut();
+      throw new Error(pErr.message);
+    }
     return rowToUser(row as Row);
   },
 

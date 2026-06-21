@@ -15,33 +15,46 @@ const cors = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-const SYSTEM = `You are the planning engine for LE-Outings, an app that turns a friend group's individual constraints into ONE concrete hangout plan.
+function buildSystem(longDistance: boolean) {
+  const transport = longDistance
+    ? `- TRANSPORTATION (long-distance / international trip): do NOT assign personal cars or seats. Leave "assignments" empty. In "summary"/"note", advise on getting there and around — flights/trains/rideshare/public transit, rough travel time, and whether a passport/visa may be needed. Ignore each member's hasCar/seats.`
+    : `- TRANSPORTATION (local trip): build a car plan from who hasCar (+ seats). Assign drivers and who rides with whom. Flag if there aren't enough seats for the group.`;
+
+  return `You are the planning engine for LE-Outings, an app that turns a friend group's individual constraints into ONE concrete, multi-stop hangout ITINERARY.
 
 Rules:
 - Pick the single best day inside the submitted 10-day availability window using maximum overlap. State who is free / not free.
-- Merge budgets by AVERAGING, but if the spread is wide (min < half of max) flag it and bias toward the lower end. Never silently exclude the lowest-budget member.
-- Dietary restrictions are hard constraints. If a venue can't accommodate someone, say so explicitly. If you can't verify a menu, label the suggestion an estimate based on cuisine.
-- Build a transportation plan from who hasCar (+ seats). Assign drivers and who rides with whom. Flag if there aren't enough seats.
+- Build a FULL ITINERARY of 2–5 stops that flow logically and form a sensible route (e.g. activity → food → dessert/drinks), each stop near the previous one. Order them by time of day.
+- Treat each member's "specific activity" as an OPTIONAL request, not a requirement. Include the ones you reasonably can. If the group named few or no activities, propose complementary nearby things to do so the day feels full and fun. Never invent a hard requirement the group didn't ask for.
+- Merge budgets by AVERAGING, but if the spread is wide (min < half of max) flag it and bias toward the lower end. Never silently exclude the lowest-budget member. The itinerary total should respect the averaged budget.
+- Dietary restrictions are hard constraints for any food stop. If a venue can't accommodate someone, say so explicitly. If you can't verify a menu, label the suggestion an estimate based on cuisine.
+${transport}
 - Prefer niche, highly-rated, lower-review-count local spots over obvious chains.
-- Honor the destination city + mile radius and any group note / regeneration constraint.
+- Honor the destination city + mile radius and any regeneration constraint. The group "note" is just a label for humans — do NOT treat it as a planning instruction.
 - Explain WHY for each major choice in short plain sentences.
 
 Output: after any research, end with ONE fenced json block (\`\`\`json ... \`\`\`) and nothing after it, matching:
 {
-  "title": "string", "day": "string", "time": "string",
-  "venue": { "name": "string", "type": "string", "area": "string", "priceLevel": "$|$$|$$$", "why": "string" },
+  "title": "string",
+  "day": "string",
+  "time": "string (overall start time)",
+  "itinerary": [
+    { "order": number, "name": "string", "type": "string", "area": "string", "time": "string", "priceLevel": "$|$$|$$$", "why": "string", "travelFromPrev": "string (how to get here from the previous stop, '' for the first)" }
+  ],
   "alternates": [ { "name": "string", "why": "string" } ],
   "food": { "note": "string", "averageBudget": number },
   "transportation": { "summary": "string", "assignments": [ { "driver": "string", "riders": ["string"] } ], "note": "string" },
-  "reasoning": ["string"], "flags": ["string"]
+  "reasoning": ["string"],
+  "flags": ["string"]
 }`;
+}
 
 function buildPrompt(group: any, members: any[], eventProfiles: Record<string, any>, constraint?: string) {
   const lines = [
     `GROUP: ${group.name}`,
     `DESTINATION: within ${group.radius_miles} miles of ${group.city}`,
+    `TRIP MODE: ${group.long_distance ? "long-distance / international (ignore personal cars)" : "local (use cars/seats for transport)"}`,
   ];
-  if (group.note) lines.push(`GROUP NOTE: ${group.note}`);
   lines.push("", "MEMBERS + EVENT PROFILES:");
   for (const m of members) {
     const p = eventProfiles[m.id] || {};
@@ -50,7 +63,7 @@ function buildPrompt(group: any, members: any[], eventProfiles: Record<string, a
         `hasCar=${m.has_car ? `yes(${m.car_seats || 4} seats)` : "no"}, ` +
         `availableDays=[${(p.availability || []).join(", ") || "none submitted"}], ` +
         `budget=$${p.budget ?? "?"}, cravings=[${(p.cravings || []).join(", ") || "none"}], ` +
-        `activity=${p.activity || "none"}`
+        `specificActivity=${p.activity ? `"${p.activity}" (optional)` : "none — you choose"}`
     );
   }
   if (constraint) lines.push("", `REGENERATION CONSTRAINT: "${constraint}" — revise the plan accordingly.`);
@@ -76,14 +89,18 @@ function extractJson(text: string) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
-  try {
-    const { groupId, constraint } = await req.json();
-    if (!groupId) throw new Error("groupId required");
 
-    const supabase = createClient(
-      Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-    );
+  const supabase = createClient(
+    Deno.env.get("SUPABASE_URL")!,
+    Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+  );
+  let groupId: string | undefined;
+
+  try {
+    const body = await req.json();
+    groupId = body.groupId;
+    const constraint = body.constraint;
+    if (!groupId) throw new Error("groupId required");
 
     const { data: group } = await supabase.from("groups").select("*").eq("id", groupId).single();
     if (!group) throw new Error("group not found");
@@ -110,7 +127,7 @@ Deno.serve(async (req) => {
       const resp = await anthropic.messages.create({
         model: MODEL,
         max_tokens: 4096,
-        system: SYSTEM,
+        system: buildSystem(Boolean(group.long_distance)),
         tools,
         messages,
       });
@@ -123,9 +140,12 @@ Deno.serve(async (req) => {
     console.log("[generate-plan] model text:", text.slice(0, 3000));
     const plan = { ...extractJson(text), generatedAt: Date.now(), constraint: constraint || null, model: MODEL };
 
-    await supabase.from("groups").update({ plan }).eq("id", groupId);
+    // Writing a fresh plan clears any "stale" marker and releases the generation lock.
+    await supabase.from("groups").update({ plan, plan_status: "ready" }).eq("id", groupId);
     return new Response(JSON.stringify({ plan }), { headers: { ...cors, "Content-Type": "application/json" } });
   } catch (e) {
+    // Release the lock so the group isn't stuck "generating" forever.
+    if (groupId) await supabase.from("groups").update({ plan_status: "idle" }).eq("id", groupId);
     return new Response(JSON.stringify({ error: (e as Error).message }), {
       status: 500,
       headers: { ...cors, "Content-Type": "application/json" },

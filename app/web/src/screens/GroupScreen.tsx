@@ -16,6 +16,7 @@ export function GroupScreen({
   const [group, setGroup] = useState<Group | null>(null);
   const [addHandle, setAddHandle] = useState("");
   const [addMsg, setAddMsg] = useState("");
+  const [genBusy, setGenBusy] = useState(false);
   const pollRef = useRef<number | null>(null);
 
   const load = useCallback(async () => {
@@ -28,9 +29,9 @@ export function GroupScreen({
     load();
   }, [load]);
 
-  // poll while everyone submitted but plan not posted yet (auto-generation in flight)
+  // poll while a generation is in flight (auto or manual, possibly started by a partner)
   useEffect(() => {
-    const generating = group && group.submitted === group.total && !group.plan && group.total > 0;
+    const generating = group?.planStatus === "generating";
     if (generating && pollRef.current == null) {
       pollRef.current = window.setInterval(load, 2500);
     }
@@ -54,27 +55,73 @@ export function GroupScreen({
     );
 
   const iSubmitted = Boolean(group.eventProfiles?.[me.username]);
-  const allIn = group.submitted === group.total;
-  const generating = allIn && !group.plan;
+  const allIn = group.submitted === group.total && group.total > 0;
+  const generating = group.planStatus === "generating";
+  const stale = Boolean(group.plan?.stale);
 
   async function addMember() {
     setAddMsg("");
     try {
-      await api.addMember(groupId, addHandle.trim());
+      const g = await api.addMember(groupId, addHandle.trim());
       setAddHandle("");
-      load();
+      setGroup(g);
     } catch (e) {
       setAddMsg((e as Error).message);
+    }
+  }
+
+  async function toggleLongDistance() {
+    const g = await api.setLongDistance(groupId, !group!.longDistance).catch(() => null);
+    if (g) setGroup(g);
+  }
+
+  async function generateNow() {
+    setGenBusy(true);
+    setAddMsg("");
+    try {
+      const r = await api.generate(groupId);
+      setGroup({ ...group!, plan: r.plan, planStatus: "ready" });
+    } catch (e) {
+      setAddMsg((e as Error).message);
+    } finally {
+      setGenBusy(false);
     }
   }
 
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-6">
       <h1 className="display text-4xl leading-none mb-2">{group.name}</h1>
-      <p className="text-muted text-sm mb-4">
+      <p className="text-muted text-sm mb-3">
         📍 within {group.radiusMiles} mi of {group.city}
         {group.note && <> · “{group.note}”</>}
       </p>
+
+      {/* long-distance / international toggle */}
+      <button
+        onClick={toggleLongDistance}
+        className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 mb-4 text-left transition ${
+          group.longDistance ? "bg-purple/15 border-purple" : "bg-surface border-line"
+        }`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-lg">{group.longDistance ? "✈️" : "🚗"}</span>
+          <div>
+            <div className="text-sm font-semibold">
+              {group.longDistance ? "Long-distance / international" : "Local trip"}
+            </div>
+            <div className="text-muted text-xs">
+              {group.longDistance ? "Skips car & seat planning" : "Uses cars & seats for transport"}
+            </div>
+          </div>
+        </div>
+        <span
+          className={`h-6 w-11 rounded-full p-0.5 transition ${group.longDistance ? "bg-purple" : "bg-line"}`}
+        >
+          <span
+            className={`block h-5 w-5 rounded-full bg-white transition ${group.longDistance ? "translate-x-5" : ""}`}
+          />
+        </span>
+      </button>
 
       {/* progress */}
       <div className="flex items-center justify-between mb-2">
@@ -131,14 +178,32 @@ export function GroupScreen({
             <div className="flex justify-center mb-3">
               <span className="inline-block h-6 w-6 rounded-full border-2 border-line border-t-lime spin" />
             </div>
-            <div className="display text-lg">Generating your plan…</div>
-            <p className="text-muted text-sm mt-1">Cross-referencing availability, budgets & cars.</p>
+            <div className="display text-lg">Generating your itinerary…</div>
+            <p className="text-muted text-sm mt-1">Building a route from everyone's availability, budgets & activities.</p>
           </Card>
         ) : group.plan ? (
           <>
+            {stale && (
+              <Card className="border-purple/60 mb-3">
+                <div className="display text-xs text-purple mb-1 tracking-widest">⚠ GROUP CHANGED</div>
+                <p className="text-sm text-white/80 mb-3">
+                  Someone joined since this plan was made. It will auto-refresh once everyone submits — or regenerate now.
+                </p>
+                <Button variant="purple" disabled={genBusy} onClick={generateNow}>
+                  {genBusy ? "REGENERATING…" : "REGENERATE NOW"}
+                </Button>
+              </Card>
+            )}
             <div className="display text-xs text-muted mb-3 tracking-widest">THE PLAN</div>
             <PlanView groupId={groupId} plan={group.plan} onUpdated={(p: Plan) => setGroup({ ...group, plan: p })} />
           </>
+        ) : allIn ? (
+          <Card className="text-center py-6">
+            <p className="text-muted text-sm mb-3">Everyone's in. Ready to build your itinerary.</p>
+            <Button disabled={genBusy} onClick={generateNow}>
+              {genBusy ? "GENERATING…" : "GENERATE PLAN"}
+            </Button>
+          </Card>
         ) : (
           <Card className="text-center py-6">
             <p className="text-muted text-sm">You're in. Waiting on {group.total - group.submitted} more to submit.</p>

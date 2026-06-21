@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { Button, Card, Input, Spinner } from "../ui";
-import type { Plan } from "../types";
+import type { ItineraryStop, Plan } from "../types";
 
 const QUICK = ["Cheaper", "Less driving", "No seafood", "Indoor only"];
 
@@ -17,6 +17,13 @@ export function PlanView({
   const [constraint, setConstraint] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  // new plans carry an itinerary; older plans only had a single venue
+  const stops: ItineraryStop[] = plan.itinerary?.length
+    ? plan.itinerary
+    : plan.venue
+    ? [{ ...plan.venue, time: plan.time }]
+    : [];
 
   async function regen(c: string) {
     if (!c.trim()) return;
@@ -47,16 +54,35 @@ export function PlanView({
         </div>
       </Card>
 
-      {/* venue */}
+      {/* itinerary route (falls back to a single stop for older venue-only plans) */}
       <Card>
-        <div className="display text-xs text-muted mb-2 tracking-widest">WHERE</div>
-        <div className="text-xl font-bold">{plan.venue?.name}</div>
-        <div className="text-muted text-sm">
-          {plan.venue?.type} · {plan.venue?.area} · {plan.venue?.priceLevel}
+        <div className="display text-xs text-muted mb-3 tracking-widest">THE ROUTE</div>
+        <div className="space-y-4">
+          {stops.map((s, i) => (
+            <div key={i}>
+              {i > 0 && s.travelFromPrev ? (
+                <div className="text-muted text-xs pl-10 pb-2">↳ {s.travelFromPrev}</div>
+              ) : null}
+              <div className="flex gap-3">
+                <div className="shrink-0 h-7 w-7 rounded-full bg-lime text-black grid place-items-center text-sm font-bold">
+                  {s.order ?? i + 1}
+                </div>
+                <div className="flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="font-bold">{s.name}</div>
+                    {s.time && <div className="text-muted text-xs shrink-0">{s.time}</div>}
+                  </div>
+                  <div className="text-muted text-sm">
+                    {[s.type, s.area, s.priceLevel].filter(Boolean).join(" · ")}
+                  </div>
+                  {s.why && <p className="text-sm mt-1 text-white/80">💡 {s.why}</p>}
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
-        {plan.venue?.why && <p className="text-sm mt-3 text-white/80">💡 {plan.venue.why}</p>}
         {plan.alternates?.length ? (
-          <div className="mt-3 pt-3 border-t border-line">
+          <div className="mt-4 pt-3 border-t border-line">
             <div className="text-xs text-muted mb-1">Alternates</div>
             {plan.alternates.map((a, i) => (
               <div key={i} className="text-sm">
