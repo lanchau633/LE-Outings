@@ -18,6 +18,7 @@ export function GroupScreen({
   const [addHandle, setAddHandle] = useState("");
   const [addMsg, setAddMsg] = useState("");
   const [genBusy, setGenBusy] = useState(false);
+  const [genStuck, setGenStuck] = useState(false);
   const [selectedMemberName, setSelectedMemberName] = useState<string | null>(null);
   const pollRef = useRef<number | null>(null);
 
@@ -51,6 +52,17 @@ export function GroupScreen({
       }
     };
   }, [group, load]);
+
+  // safety net: if generation hasn't finished in 90s, offer a manual retry
+  // instead of spinning forever (e.g. the invoke never reached the function)
+  useEffect(() => {
+    if (group?.planStatus !== "generating") {
+      setGenStuck(false);
+      return;
+    }
+    const t = window.setTimeout(() => setGenStuck(true), 90000);
+    return () => clearTimeout(t);
+  }, [group?.planStatus]);
 
   if (!group)
     return (
@@ -169,6 +181,14 @@ export function GroupScreen({
             </div>
             <div className="display text-lg">Generating your itinerary…</div>
             <p className="text-muted text-sm mt-1">Building a route from everyone's availability, budgets & activities.</p>
+            {genStuck && (
+              <div className="mt-4">
+                <p className="text-muted text-xs mb-2">Taking longer than usual.</p>
+                <Button variant="ghost" disabled={genBusy} onClick={generateNow}>
+                  {genBusy ? "RETRYING…" : "TRY AGAIN"}
+                </Button>
+              </div>
+            )}
           </Card>
         ) : group.plan ? (
           <>

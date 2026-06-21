@@ -27,6 +27,7 @@ export function Profile({
   const [carSeats, setCarSeats] = useState(me.carSeats || 4);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [err, setErr] = useState("");
 
   const toggle = (d: string) =>
     setDietary((cur) => {
@@ -44,6 +45,7 @@ export function Profile({
   async function save() {
     setBusy(true);
     setSaved(false);
+    setErr("");
     try {
       const cleanDietary = dietary
         .filter((d) => d !== "None")
@@ -58,6 +60,8 @@ export function Profile({
       });
       onSaved(u);
       setSaved(true);
+    } catch (e) {
+      setErr((e as Error).message);
     } finally {
       setBusy(false);
     }
@@ -141,6 +145,7 @@ export function Profile({
         </div>
       </Card>
 
+      {err && <p className="text-red-400 text-sm mb-3">{err}</p>}
       <Button disabled={busy} onClick={save}>
         {busy ? "SAVING…" : saved ? "SAVED ✓" : "SAVE CHANGES"}
       </Button>
