@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { Button, Field, Input, Chip, RangeSlider } from "../ui";
+import { Button, Field, Input, Chip, RangeSlider, TimeRangeSlider } from "../ui";
 import { fmtHour } from "../constants";
 import type { Group, User } from "../types";
 
@@ -65,32 +65,17 @@ export function CreateGroup({
           <RangeSlider min={1} max={50} value={radius} onChange={setRadius} />
         </Field>
 
-        {/* time window */}
+        {/* time window — single dual-thumb slider */}
         <div>
           <div className="display text-xs text-muted mb-3 tracking-widest">
             TIME WINDOW — {fmtHour(startHour)} to {fmtHour(endHour)}
           </div>
-          <div className="space-y-4">
-            <div>
-              <div className="text-xs text-muted mb-1.5">Start</div>
-              <RangeSlider min={0} max={23} value={startHour} onChange={(v) => {
-                setStartHour(v);
-                if (v >= endHour) setEndHour(Math.min(23, v + 1));
-              }} />
-              <div className="flex justify-between text-xs text-muted mt-1">
-                <span>12 AM</span><span>11 PM</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted mb-1.5">End</div>
-              <RangeSlider min={0} max={23} value={endHour} onChange={(v) => {
-                setEndHour(v);
-                if (v <= startHour) setStartHour(Math.max(0, v - 1));
-              }} />
-              <div className="flex justify-between text-xs text-muted mt-1">
-                <span>12 AM</span><span>11 PM</span>
-              </div>
-            </div>
+          <TimeRangeSlider
+            start={startHour} end={endHour}
+            onStart={setStartHour} onEnd={setEndHour}
+          />
+          <div className="flex justify-between text-xs text-muted mt-1">
+            <span>12 AM</span><span>11 PM</span>
           </div>
           <p className="text-muted text-xs mt-2">
             The AI plans within this window. Activities that don't fit are listed as alternates.

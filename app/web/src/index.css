@@ -72,7 +72,9 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: 0 1px 4px rgba(0,0,0,0.4);
   cursor: pointer;
 }
-/* filled portion via inline background set by RangeSlider component */
+/* dual-thumb TimeRangeSlider — both inputs are stacked; thumbs need pointer events */
+input[type="range"].pointer-events-none::-webkit-slider-thumb { pointer-events: all; }
+input[type="range"].pointer-events-none::-moz-range-thumb      { pointer-events: all; }
 
 @keyframes spin {
   to {

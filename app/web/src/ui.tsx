@@ -151,6 +151,44 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+export function TimeRangeSlider({
+  min = 0,
+  max = 23,
+  start,
+  end,
+  onStart,
+  onEnd,
+}: {
+  min?: number;
+  max?: number;
+  start: number;
+  end: number;
+  onStart: (v: number) => void;
+  onEnd: (v: number) => void;
+}) {
+  const range = max - min;
+  const leftPct = ((start - min) / range) * 100;
+  const rightPct = ((end - min) / range) * 100;
+  const track = `linear-gradient(to right, #2a2a33 ${leftPct}%, #c7f24a ${leftPct}%, #c7f24a ${rightPct}%, #2a2a33 ${rightPct}%)`;
+  return (
+    <div className="relative h-6 flex items-center">
+      <div className="absolute inset-x-0 h-1.5 rounded-full pointer-events-none" style={{ background: track }} />
+      <input
+        type="range" min={min} max={max} value={start}
+        onChange={(e) => { const v = Number(e.target.value); onStart(Math.min(v, end - 1)); }}
+        className="absolute inset-x-0 w-full pointer-events-none"
+        style={{ background: "transparent" }}
+      />
+      <input
+        type="range" min={min} max={max} value={end}
+        onChange={(e) => { const v = Number(e.target.value); onEnd(Math.max(v, start + 1)); }}
+        className="absolute inset-x-0 w-full pointer-events-none"
+        style={{ background: "transparent" }}
+      />
+    </div>
+  );
+}
+
 export function RangeSlider({
   min,
   max,
