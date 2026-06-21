@@ -7,6 +7,13 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import Anthropic from "npm:@anthropic-ai/sdk@0.65.0";
 
 const MODEL = Deno.env.get("MODEL") || "claude-sonnet-4-6";
+
+function fmtHour(h: number) {
+  if (h === 0) return "12 AM";
+  if (h < 12) return `${h} AM`;
+  if (h === 12) return "12 PM";
+  return `${h - 12} PM`;
+}
 const USE_WEB_SEARCH = (Deno.env.get("USE_WEB_SEARCH") || "true") === "true";
 
 const cors = {
@@ -25,7 +32,7 @@ function buildSystem(longDistance: boolean) {
 Rules:
 - Pick the single best day inside the submitted 10-day availability window using maximum overlap. State who is free / not free.
 - Build a FULL ITINERARY of 2–5 stops that flow logically and form a sensible route (e.g. activity → food → dessert/drinks), each stop near the previous one. Order them by time of day.
-- TIME BUDGET is a hard limit: the whole itinerary (stops + travel between them) must fit within the group's "up to N hours" window. Budget realistic durations per stop. If the group's requested activities can't all fit, build the best itinerary that DOES fit and put every left-out activity/spot into "alternates", each with a "why" that says it didn't fit the time window.
+- TIME WINDOW is a hard constraint: every stop must start and end within the group's available time window (given in the prompt). Budget realistic durations per stop including travel. If the group's requested activities can't all fit, build the best itinerary that DOES fit and put every left-out activity/spot into "alternates", each with a "why" that says it didn't fit the time window.
 - Treat each member's "specific activity" as an OPTIONAL request, not a requirement. Include the ones you reasonably can. If the group named few or no activities, propose complementary nearby things to do so the day feels full and fun (still within the time budget). Never invent a hard requirement the group didn't ask for.
 - Merge budgets by AVERAGING, but if the spread is wide (min < half of max) flag it and bias toward the lower end. Never silently exclude the lowest-budget member. The itinerary total should respect the averaged budget.
 - Dietary restrictions are hard constraints for any food stop. If a venue can't accommodate someone, say so explicitly. If you can't verify a menu, label the suggestion an estimate based on cuisine.
@@ -54,7 +61,7 @@ function buildPrompt(group: any, members: any[], eventProfiles: Record<string, a
   const lines = [
     `GROUP: ${group.name}`,
     `DESTINATION: within ${group.radius_miles} miles of ${group.city}`,
-    `TIME BUDGET: the group can be out for up to ${group.max_hours ?? 6} hours total (including travel).`,
+    `TIME WINDOW: the group is available from ${fmtHour(group.start_hour ?? 12)} to ${fmtHour(group.end_hour ?? 22)} (including travel). All itinerary stops must fit within this window.`,
     `TRIP MODE: ${group.long_distance ? "long-distance / international (ignore personal cars)" : "local (use cars/seats for transport)"}`,
   ];
   lines.push("", "MEMBERS + EVENT PROFILES:");

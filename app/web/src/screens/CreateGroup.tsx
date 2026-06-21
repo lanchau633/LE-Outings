@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
 import { Button, Field, Input, Chip, RangeSlider } from "../ui";
+import { fmtHour } from "../constants";
 import type { Group, User } from "../types";
 
 export function CreateGroup({
@@ -13,7 +14,8 @@ export function CreateGroup({
   const [name, setName] = useState("");
   const [city, setCity] = useState("");
   const [radius, setRadius] = useState(15);
-  const [maxHours, setMaxHours] = useState(6);
+  const [startHour, setStartHour] = useState(12);
+  const [endHour, setEndHour] = useState(22);
   const [note, setNote] = useState("");
   const [friends, setFriends] = useState<User[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
@@ -36,7 +38,8 @@ export function CreateGroup({
         leader: me.username,
         city: city.trim(),
         radiusMiles: radius,
-        maxHours,
+        startHour,
+        endHour,
         note: note.trim(),
         members: picked,
       });
@@ -61,16 +64,39 @@ export function CreateGroup({
         <Field label={`RADIUS — within ${radius} miles`}>
           <RangeSlider min={1} max={50} value={radius} onChange={setRadius} />
         </Field>
-        <Field label={`TIME OUT — up to ${maxHours} ${maxHours === 1 ? "hour" : "hours"}`}>
-          <RangeSlider min={1} max={12} value={maxHours} onChange={setMaxHours} />
-          <div className="flex justify-between text-xs text-muted mt-1">
-            <span>1h</span>
-            <span>12h</span>
+
+        {/* time window */}
+        <div>
+          <div className="display text-xs text-muted mb-3 tracking-widest">
+            TIME WINDOW — {fmtHour(startHour)} to {fmtHour(endHour)}
           </div>
-          <p className="text-muted text-xs mt-1">
-            How long the group can be out. If everything won't fit, the AI lists the rest as alternates.
+          <div className="space-y-4">
+            <div>
+              <div className="text-xs text-muted mb-1.5">Start</div>
+              <RangeSlider min={0} max={23} value={startHour} onChange={(v) => {
+                setStartHour(v);
+                if (v >= endHour) setEndHour(Math.min(23, v + 1));
+              }} />
+              <div className="flex justify-between text-xs text-muted mt-1">
+                <span>12 AM</span><span>11 PM</span>
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-muted mb-1.5">End</div>
+              <RangeSlider min={0} max={23} value={endHour} onChange={(v) => {
+                setEndHour(v);
+                if (v <= startHour) setStartHour(Math.max(0, v - 1));
+              }} />
+              <div className="flex justify-between text-xs text-muted mt-1">
+                <span>12 AM</span><span>11 PM</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-muted text-xs mt-2">
+            The AI plans within this window. Activities that don't fit are listed as alternates.
           </p>
-        </Field>
+        </div>
+
         <Field label="NOTE / LABEL (OPTIONAL)">
           <Input value={note} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Birthday trip" />
           <p className="text-muted text-xs mt-1">

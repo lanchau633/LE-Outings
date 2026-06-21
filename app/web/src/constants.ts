@@ -37,6 +37,13 @@ export function next10Days(): string[] {
   return out;
 }
 
+export function fmtHour(h: number) {
+  if (h === 0) return "12 AM";
+  if (h < 12) return `${h} AM`;
+  if (h === 12) return "12 PM";
+  return `${h - 12} PM`;
+}
+
 export function fmtDay(iso: string) {
   const d = new Date(iso + "T00:00:00");
   return {

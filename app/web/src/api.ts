@@ -51,7 +51,8 @@ async function hydrateGroup(g: any): Promise<Group> {
     city: g.city,
     radiusMiles: g.radius_miles,
     note: g.note ?? "",
-    maxHours: g.max_hours ?? 6,
+    startHour: g.start_hour ?? 12,
+    endHour: g.end_hour ?? 22,
     longDistance: g.long_distance ?? false,
     planStatus: (g.plan_status ?? "idle") as Group["planStatus"],
     members: memberProfiles.map((m) => m.username),
@@ -120,7 +121,8 @@ export const api = {
     city: string;
     radiusMiles: number;
     note?: string;
-    maxHours?: number;
+    startHour?: number;
+    endHour?: number;
     members: string[];
   }): Promise<Group> {
     const id = await myId();
@@ -132,7 +134,8 @@ export const api = {
         city: g.city,
         radius_miles: g.radiusMiles,
         note: g.note ?? "",
-        max_hours: g.maxHours ?? 6,
+        start_hour: g.startHour ?? 12,
+        end_hour: g.endHour ?? 22,
       })
       .select()
       .single();

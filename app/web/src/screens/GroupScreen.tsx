@@ -3,7 +3,7 @@ import { api } from "../api";
 import { Avatar, Button, Card, Chip, Input, ProgressBar, Spinner } from "../ui";
 import { PlanView } from "./PlanView";
 import type { Group, Plan, User } from "../types";
-import { fmtDay, next10Days } from "../constants";
+import { fmtDay, fmtHour, next10Days } from "../constants";
 
 export function GroupScreen({
   me,
@@ -100,7 +100,7 @@ export function GroupScreen({
     <div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-6">
       <h1 className="display text-4xl leading-none mb-2">{group.name}</h1>
       <p className="text-muted text-sm mb-3">
-        📍 within {group.radiusMiles} mi of {group.city} · ⏱ up to {group.maxHours}h
+        📍 within {group.radiusMiles} mi of {group.city} · ⏱ {fmtHour(group.startHour)}–{fmtHour(group.endHour)}
         {group.note && <> · “{group.note}”</>}
       </p>
 
