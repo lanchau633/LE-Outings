@@ -39,7 +39,7 @@ Rules:
 ${transport}
 - Prefer niche, highly-rated, lower-review-count local spots over obvious chains.
 - Honor the destination city + mile radius and any regeneration constraint. The group "note" is just a label for humans — do NOT treat it as a planning instruction.
-- Explain WHY for each major choice in short plain sentences.
+- BE CONCISE. Each stop "why" is ONE short sentence (max ~18 words) — no URLs, no booking steps, no price breakdowns. Each "reasoning" bullet is one short phrase. Keep "time" compact like "10:00 AM–12:00 PM" (no "approx." or duration text).
 
 Output: after any research, end with ONE fenced json block (\`\`\`json ... \`\`\`) and nothing after it, matching:
 {
@@ -47,7 +47,7 @@ Output: after any research, end with ONE fenced json block (\`\`\`json ... \`\`\
   "day": "string",
   "time": "string (overall start time)",
   "itinerary": [
-    { "order": number, "name": "string", "type": "string", "area": "string", "time": "string", "priceLevel": "$|$$|$$$", "why": "string", "travelFromPrev": "string (how to get here from the previous stop, '' for the first)" }
+    { "order": number, "name": "string", "type": "string", "area": "string", "time": "compact range e.g. 10:00 AM–12:00 PM", "priceLevel": "$|$$|$$$", "why": "ONE short sentence", "travelFromPrev": "short, e.g. '5-min walk' ('' for the first)" }
   ],
   "alternates": [ { "name": "string", "why": "string" } ],
   "food": { "note": "string", "averageBudget": number },

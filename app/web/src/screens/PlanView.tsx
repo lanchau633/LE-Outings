@@ -67,15 +67,13 @@ export function PlanView({
                 <div className="shrink-0 h-7 w-7 rounded-full bg-lime text-black grid place-items-center text-sm font-bold">
                   {s.order ?? i + 1}
                 </div>
-                <div className="flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <div className="font-bold">{s.name}</div>
-                    {s.time && <div className="text-muted text-xs shrink-0">{s.time}</div>}
-                  </div>
-                  <div className="text-muted text-sm">
+                <div className="flex-1 min-w-0">
+                  <div className="font-bold leading-snug">{s.name}</div>
+                  {s.time && <div className="text-lime text-xs mt-0.5">{s.time}</div>}
+                  <div className="text-muted text-sm mt-0.5">
                     {[s.type, s.area, s.priceLevel].filter(Boolean).join(" · ")}
                   </div>
-                  {s.why && <p className="text-sm mt-1 text-white/80">💡 {s.why}</p>}
+                  {s.why && <p className="text-sm mt-1.5 text-white/80">💡 {s.why}</p>}
                 </div>
               </div>
             </div>
