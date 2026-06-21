@@ -135,13 +135,16 @@ Deno.serve(async (req) => {
     for (let turn = 0; turn < 6; turn++) {
       const resp = await anthropic.messages.create({
         model: MODEL,
-        max_tokens: 4096,
+        max_tokens: 8192,
         system: buildSystem(Boolean(group.long_distance)),
         tools,
         messages,
       });
       messages.push({ role: "assistant", content: resp.content });
       if (resp.stop_reason === "pause_turn") continue;
+      if (resp.stop_reason === "max_tokens") {
+        console.warn("[generate-plan] hit max_tokens — response truncated");
+      }
       text = resp.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
       break;
     }
