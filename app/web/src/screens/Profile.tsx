@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { DIETARY } from "../constants";
-import { Avatar, Button, Card, Chip } from "../ui";
+import { Avatar, Button, Card, Chip, Input } from "../ui";
 import type { User } from "../types";
 
 export function Profile({
@@ -13,28 +13,46 @@ export function Profile({
   onSaved: (u: User) => void;
   onLogout: () => void;
 }) {
-  const [dietary, setDietary] = useState<string[]>(me.dietary.length ? me.dietary : ["None"]);
+  const initialDietary = me.dietary.filter((d) => DIETARY.includes(d));
+  const customDietary = me.dietary.filter((d) => !DIETARY.includes(d) && d !== "Other");
+  const [dietary, setDietary] = useState<string[]>(() => {
+    const list = [...initialDietary];
+    if (customDietary.length) {
+      list.push("Other");
+    }
+    return list.length ? list : ["None"];
+  });
+  const [otherDiet, setOtherDiet] = useState(customDietary.join(", "));
   const [hasCar, setHasCar] = useState(me.hasCar);
   const [carSeats, setCarSeats] = useState(me.carSeats || 4);
   const [busy, setBusy] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const toggle = (d: string) =>
-    setDietary((cur) =>
-      d === "None"
-        ? ["None"]
-        : cur.includes(d)
-          ? cur.filter((x) => x !== d)
-          : [...cur.filter((x) => x !== "None"), d]
-    );
+    setDietary((cur) => {
+      if (d === "None") {
+        setOtherDiet("");
+        return ["None"];
+      }
+      const next = cur.includes(d) ? cur.filter((x) => x !== d) : [...cur.filter((x) => x !== "None"), d];
+      if (!next.includes("Other")) {
+        setOtherDiet("");
+      }
+      return next;
+    });
 
   async function save() {
     setBusy(true);
     setSaved(false);
     try {
+      const cleanDietary = dietary
+        .filter((d) => d !== "None")
+        .map((d) => (d === "Other" ? otherDiet.trim() : d))
+        .filter(Boolean);
+
       const u = await api.upsertUser({
         username: me.username,
-        dietary: dietary.filter((d) => d !== "None"),
+        dietary: cleanDietary,
         hasCar,
         carSeats: hasCar ? carSeats : 0,
       });
@@ -60,6 +78,16 @@ export function Profile({
             <Chip key={d} label={d} active={dietary.includes(d)} onClick={() => toggle(d)} />
           ))}
         </div>
+        {dietary.includes("Other") && (
+          <div className="mt-4">
+            <div className="display text-xs text-muted tracking-widest mb-2">SPECIFY DIETARY RESTRICTION</div>
+            <Input
+              value={otherDiet}
+              onChange={(e) => setOtherDiet(e.target.value)}
+              placeholder="e.g. Keto, Celiac, Garlic allergy"
+            />
+          </div>
+        )}
       </Card>
 
       <Card className="mb-6">
