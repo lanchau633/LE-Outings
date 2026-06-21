@@ -8,6 +8,7 @@ export const DIETARY = [
   "Pescatarian",
   "Nut-Free",
   "Dairy-Free",
+  "Other",
 ];
 
 export const CRAVINGS = [
@@ -21,6 +22,7 @@ export const CRAVINGS = [
   "American",
   "Chinese",
   "Pizza",
+  "Other",
 ];
 
 // next 10 days as ISO date strings

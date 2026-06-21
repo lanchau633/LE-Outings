@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { auth } from "../auth";
 import { DIETARY } from "../constants";
-import { Button, Chip, Note } from "../ui";
+import { Button, Chip, Input, Note } from "../ui";
 import type { User } from "../types";
 
 export function Onboarding({ onDone }: { onDone: (u: User) => void }) {
@@ -95,22 +95,36 @@ function Signup({ onDone, toLogin }: { onDone: (u: User) => void; toLogin: () =>
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [dietary, setDietary] = useState<string[]>(["None"]);
+  const [otherDiet, setOtherDiet] = useState("");
   const [hasCar, setHasCar] = useState(false);
   const [carSeats, setCarSeats] = useState(4);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
   const toggleDiet = (d: string) =>
-    setDietary((cur) =>
-      d === "None" ? ["None"] : cur.includes(d) ? cur.filter((x) => x !== d) : [...cur.filter((x) => x !== "None"), d]
-    );
+    setDietary((cur) => {
+      if (d === "None") {
+        setOtherDiet("");
+        return ["None"];
+      }
+      const next = cur.includes(d) ? cur.filter((x) => x !== d) : [...cur.filter((x) => x !== "None"), d];
+      if (!next.includes("Other")) {
+        setOtherDiet("");
+      }
+      return next;
+    });
 
   async function finish() {
     setBusy(true);
     setErr("");
     try {
+      const cleanDietary = dietary
+        .filter((d) => d !== "None")
+        .map((d) => (d === "Other" ? otherDiet.trim() : d))
+        .filter(Boolean);
+
       const u = await auth.signUp(username.trim(), password, {
-        dietary: dietary.filter((d) => d !== "None"),
+        dietary: cleanDietary,
         hasCar,
         carSeats: hasCar ? carSeats : 0,
       });
@@ -173,9 +187,22 @@ function Signup({ onDone, toLogin }: { onDone: (u: User) => void; toLogin: () =>
               <Chip key={d} label={d} active={dietary.includes(d)} onClick={() => toggleDiet(d)} />
             ))}
           </div>
+          {dietary.includes("Other") && (
+            <div className="mb-5">
+              <div className="display text-xs text-muted tracking-widest mb-2">SPECIFY DIETARY RESTRICTION</div>
+              <Input
+                value={otherDiet}
+                onChange={(e) => setOtherDiet(e.target.value)}
+                placeholder="e.g. Keto, Celiac, Garlic allergy"
+              />
+            </div>
+          )}
           <Note>If a restaurant can't accommodate your restriction, the AI will flag it — not silently pick something that excludes you.</Note>
           <div className="flex-1" />
-          <Button onClick={() => setStep(2)}>CONTINUE</Button>
+          <div className="flex gap-3">
+            <Button variant="ghost" className="flex-1" onClick={() => setStep(0)}>BACK</Button>
+            <Button className="flex-1" onClick={() => setStep(2)}>CONTINUE</Button>
+          </div>
         </div>
       )}
 
@@ -234,9 +261,12 @@ function Signup({ onDone, toLogin }: { onDone: (u: User) => void; toLogin: () =>
 
           <div className="flex-1" />
           {err && <p className="text-red-400 text-sm mb-3">{err}</p>}
-          <Button disabled={busy} onClick={finish}>
-            {busy ? "CREATING…" : "SET UP MY PROFILE"}
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="ghost" className="flex-1" onClick={() => setStep(1)}>BACK</Button>
+            <Button className="flex-1" disabled={busy} onClick={finish}>
+              {busy ? "CREATING…" : "SET UP MY PROFILE"}
+            </Button>
+          </div>
         </div>
       )}
     </div>

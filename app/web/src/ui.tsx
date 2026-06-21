@@ -112,8 +112,23 @@ export function Chip({
   );
 }
 
-export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`bg-card border border-line rounded-3xl p-5 ${className}`}>{children}</div>;
+export function Card({
+  children,
+  className = "",
+  onClick,
+}: {
+  children: ReactNode;
+  className?: string;
+  onClick?: () => void;
+}) {
+  return (
+    <div
+      onClick={onClick}
+      className={`bg-card border border-line rounded-3xl p-5 ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function Field({ label, children }: { label: string; children: ReactNode }) {

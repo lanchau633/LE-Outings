@@ -17,6 +17,7 @@ export function EventProfileForm({
   const [availability, setAvailability] = useState<string[]>([]);
   const [budget, setBudget] = useState(30);
   const [cravings, setCravings] = useState<string[]>([]);
+  const [otherCrave, setOtherCrave] = useState("");
   const [activity, setActivity] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
@@ -24,17 +25,27 @@ export function EventProfileForm({
   const toggleDay = (d: string) =>
     setAvailability((a) => (a.includes(d) ? a.filter((x) => x !== d) : [...a, d]));
   const toggleCrave = (c: string) =>
-    setCravings((a) => (a.includes(c) ? a.filter((x) => x !== c) : [...a, c]));
+    setCravings((a) => {
+      const next = a.includes(c) ? a.filter((x) => x !== c) : [...a, c];
+      if (!next.includes("Other")) {
+        setOtherCrave("");
+      }
+      return next;
+    });
 
   async function submit() {
     setBusy(true);
     setErr("");
     try {
+      const cleanCravings = cravings
+        .map((c) => (c === "Other" ? otherCrave.trim() : c))
+        .filter(Boolean);
+
       const r = await api.submitEventProfile(groupId, {
         username: me.username,
         availability,
         budget,
-        cravings,
+        cravings: cleanCravings,
         activity: activity.trim(),
       });
       onSubmitted(r.generating);
@@ -88,6 +99,16 @@ export function EventProfileForm({
               <Chip key={c} label={c} active={cravings.includes(c)} onClick={() => toggleCrave(c)} color="lime" />
             ))}
           </div>
+          {cravings.includes("Other") && (
+            <div className="mt-4">
+              <div className="display text-xs text-muted tracking-widest mb-2">SPECIFY OTHER CRAVING</div>
+              <Input
+                value={otherCrave}
+                onChange={(e) => setOtherCrave(e.target.value)}
+                placeholder="e.g. Sushi, Burgers, Vietnamese"
+              />
+            </div>
+          )}
         </div>
 
         <Field label="SPECIFIC ACTIVITY (OPTIONAL)">
