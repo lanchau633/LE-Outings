@@ -87,8 +87,14 @@ export const api = {
 
   async getFriends(_username: string): Promise<User[]> {
     const id = await myId();
-    const { data } = await supabase.from("friendships").select("friend_id").eq("user_id", id);
-    const ids = (data || []).map((r) => r.friend_id);
+    // friendship is symmetric: read edges where I'm on EITHER side, return the other person
+    const { data } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .or(`user_id.eq.${id},friend_id.eq.${id}`);
+    const ids = Array.from(
+      new Set((data || []).map((r) => (r.user_id === id ? r.friend_id : r.user_id)))
+    ).filter((x) => x !== id);
     if (!ids.length) return [];
     const { data: profs } = await supabase.from("profiles").select("*").in("id", ids);
     return (profs || []).map(rowToUser);

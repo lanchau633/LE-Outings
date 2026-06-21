@@ -58,15 +58,20 @@ function buildPrompt(group: any, members: any[], eventProfiles: Record<string, a
 }
 
 function extractJson(text: string) {
-  const fences = [...text.matchAll(/```json\s*([\s\S]*?)```/g)];
-  const raw = fences.length
-    ? fences[fences.length - 1][1]
-    : text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1);
-  try {
-    return JSON.parse(raw);
-  } catch {
-    return { title: "Plan", reasoning: ["Could not parse model output."], flags: ["parse_error"], raw: text };
+  const candidates: string[] = [];
+  // 1) ```json fenced blocks, 2) any ``` fenced blocks, 3) outermost { ... }
+  candidates.push(...[...text.matchAll(/```json\s*([\s\S]*?)```/g)].map((m) => m[1]));
+  candidates.push(...[...text.matchAll(/```\s*([\s\S]*?)```/g)].map((m) => m[1]));
+  if (text.includes("{") && text.includes("}"))
+    candidates.push(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1));
+  for (const c of candidates) {
+    try {
+      return JSON.parse(c.trim());
+    } catch {
+      /* try next candidate */
+    }
   }
+  return { title: "Plan", reasoning: ["Could not parse model output."], flags: ["parse_error"], raw: text.slice(0, 2000) };
 }
 
 Deno.serve(async (req) => {
@@ -91,15 +96,31 @@ Deno.serve(async (req) => {
     for (const e of eps || []) epMap[e.user_id] = e;
 
     const anthropic = new Anthropic({ apiKey: Deno.env.get("ANTHROPIC_API_KEY")! });
-    const resp = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 2000,
-      system: SYSTEM,
-      tools: USE_WEB_SEARCH ? [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }] : undefined,
-      messages: [{ role: "user", content: buildPrompt(group, members || [], epMap, constraint) }],
-    });
+    const tools = USE_WEB_SEARCH
+      ? [{ type: "web_search_20250305", name: "web_search", max_uses: 5 }]
+      : undefined;
+    const messages: any[] = [
+      { role: "user", content: buildPrompt(group, members || [], epMap, constraint) },
+    ];
 
-    const text = resp.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+    // Web search can return stop_reason "pause_turn" before finishing — resume by
+    // re-sending the conversation until the model produces its final answer.
+    let text = "";
+    for (let turn = 0; turn < 6; turn++) {
+      const resp = await anthropic.messages.create({
+        model: MODEL,
+        max_tokens: 4096,
+        system: SYSTEM,
+        tools,
+        messages,
+      });
+      messages.push({ role: "assistant", content: resp.content });
+      if (resp.stop_reason === "pause_turn") continue;
+      text = resp.content.filter((b: any) => b.type === "text").map((b: any) => b.text).join("\n");
+      break;
+    }
+
+    console.log("[generate-plan] model text:", text.slice(0, 3000));
     const plan = { ...extractJson(text), generatedAt: Date.now(), constraint: constraint || null, model: MODEL };
 
     await supabase.from("groups").update({ plan }).eq("id", groupId);
