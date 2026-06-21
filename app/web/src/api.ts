@@ -123,6 +123,7 @@ export const api = {
     note?: string;
     startHour?: number;
     endHour?: number;
+    longDistance?: boolean;
     members: string[];
   }): Promise<Group> {
     const id = await myId();
@@ -136,6 +137,7 @@ export const api = {
         note: g.note ?? "",
         start_hour: g.startHour ?? 12,
         end_hour: g.endHour ?? 22,
+        long_distance: g.longDistance ?? false,
       })
       .select()
       .single();

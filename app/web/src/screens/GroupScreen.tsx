@@ -63,8 +63,6 @@ export function GroupScreen({
   const allIn = group.submitted === group.total && group.total > 0;
   const generating = group.planStatus === "generating";
   const stale = Boolean(group.plan?.stale);
-  // Once a plan exists, the trip type is baked into it — lock the toggle.
-  const tripTypeLocked = Boolean(group.plan);
 
   async function addMember() {
     setAddMsg("");
@@ -75,12 +73,6 @@ export function GroupScreen({
     } catch (e) {
       setAddMsg((e as Error).message);
     }
-  }
-
-  async function toggleLongDistance() {
-    if (group!.plan) return; // locked once a plan is generated
-    const g = await api.setLongDistance(groupId, !group!.longDistance).catch(() => null);
-    if (g) setGroup(g);
   }
 
   async function generateNow() {
@@ -99,43 +91,13 @@ export function GroupScreen({
   return (
     <div className="flex-1 overflow-y-auto no-scrollbar px-5 pb-6">
       <h1 className="display text-4xl leading-none mb-2">{group.name}</h1>
-      <p className="text-muted text-sm mb-3">
+      <p className="text-muted text-sm mb-1">
         📍 within {group.radiusMiles} mi of {group.city} · ⏱ {fmtHour(group.startHour)}–{fmtHour(group.endHour)}
         {group.note && <> · “{group.note}”</>}
       </p>
-
-      {/* long-distance / international toggle (locked once a plan exists) */}
-      <button
-        onClick={toggleLongDistance}
-        disabled={tripTypeLocked}
-        className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 mb-4 text-left transition ${
-          group.longDistance ? "bg-purple/15 border-purple" : "bg-surface border-line"
-        } ${tripTypeLocked ? "opacity-60 cursor-not-allowed" : ""}`}
-      >
-        <div className="flex items-center gap-3">
-          <span className="text-lg">{group.longDistance ? "✈️" : "🚗"}</span>
-          <div>
-            <div className="text-sm font-semibold flex items-center gap-1.5">
-              {group.longDistance ? "Long-distance / international" : "Local trip"}
-              {tripTypeLocked && <span className="text-muted text-xs">🔒</span>}
-            </div>
-            <div className="text-muted text-xs">
-              {tripTypeLocked
-                ? "Locked — a plan has been created"
-                : group.longDistance
-                ? "Skips car & seat planning"
-                : "Uses cars & seats for transport"}
-            </div>
-          </div>
-        </div>
-        <span
-          className={`h-6 w-11 rounded-full p-0.5 transition ${group.longDistance ? "bg-purple" : "bg-line"}`}
-        >
-          <span
-            className={`block h-5 w-5 rounded-full bg-white transition ${group.longDistance ? "translate-x-5" : ""}`}
-          />
-        </span>
-      </button>
+      <p className="text-muted text-sm mb-4">
+        {group.longDistance ? "✈️ Long-distance / international" : "🚗 Local trip"}
+      </p>
 
       {/* progress */}
       <div className="flex items-center justify-between mb-2">

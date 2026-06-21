@@ -16,6 +16,7 @@ export function CreateGroup({
   const [radius, setRadius] = useState(15);
   const [startHour, setStartHour] = useState(12);
   const [endHour, setEndHour] = useState(22);
+  const [longDistance, setLongDistance] = useState(false);
   const [note, setNote] = useState("");
   const [friends, setFriends] = useState<User[]>([]);
   const [picked, setPicked] = useState<string[]>([]);
@@ -40,6 +41,7 @@ export function CreateGroup({
         radiusMiles: radius,
         startHour,
         endHour,
+        longDistance,
         note: note.trim(),
         members: picked,
       });
@@ -80,6 +82,34 @@ export function CreateGroup({
           <p className="text-muted text-xs mt-2">
             The AI plans within this window. Activities that don't fit are listed as alternates.
           </p>
+        </div>
+
+        {/* long-distance / international toggle */}
+        <div>
+          <div className="display text-xs text-muted mb-2 tracking-widest">TRIP TYPE</div>
+          <button
+            type="button"
+            onClick={() => setLongDistance((v) => !v)}
+            className={`w-full flex items-center justify-between rounded-2xl border px-4 py-3 text-left transition ${
+              longDistance ? "bg-purple/15 border-purple" : "bg-surface border-line"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-lg">{longDistance ? "✈️" : "🚗"}</span>
+              <div>
+                <div className="text-sm font-semibold">
+                  {longDistance ? "Long-distance / international" : "Local trip"}
+                </div>
+                <div className="text-muted text-xs">
+                  {longDistance ? "Skips car & seat planning" : "Uses cars & seats for transport"}
+                </div>
+              </div>
+            </div>
+            <span className={`h-6 w-11 rounded-full p-0.5 transition ${longDistance ? "bg-purple" : "bg-line"}`}>
+              <span className={`block h-5 w-5 rounded-full bg-white transition ${longDistance ? "translate-x-5" : ""}`} />
+            </span>
+          </button>
+          <p className="text-muted text-xs mt-1">Can't be changed after the group is created.</p>
         </div>
 
         <Field label="NOTE / LABEL (OPTIONAL)">
