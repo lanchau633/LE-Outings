@@ -53,6 +53,7 @@ export default function App() {
   function home() {
     setCreating(false);
     setGroupMode("detail");
+    setSelectedGroupId(null);
     setTab("home");
   }
 
@@ -79,8 +80,9 @@ export default function App() {
 
   function handleBack() {
     if (tab === "profile") { setTab(prevTab); return; }
-    if (creating || groupMode === "event") { setCreating(false); setGroupMode("detail"); return; }
-    home();
+    if (creating) { home(); return; }                                // New Group was opened from home → go home
+    if (groupMode === "event") { setGroupMode("detail"); return; }   // event profile → back to group detail
+    home();                                                          // viewing a group → go home
   }
 
   return (
@@ -107,6 +109,8 @@ export default function App() {
           onOpenGroup={openGroup}
           onCreateGroup={() => {
             setCreating(true);
+            setGroupMode("detail");
+            setSelectedGroupId(null);
             setTab("group");
           }}
         />
