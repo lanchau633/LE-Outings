@@ -150,7 +150,19 @@ Deno.serve(async (req) => {
     }
 
     console.log("[generate-plan] model text:", text.slice(0, 3000));
-    const plan = { ...extractJson(text), generatedAt: Date.now(), constraint: constraint || null, model: MODEL };
+    const parsed = extractJson(text);
+
+    // If parsing failed, don't poison the plan slot with the fallback object.
+    // Release the lock (status -> idle) so it stays retryable, and surface an error.
+    if (Array.isArray(parsed.flags) && parsed.flags.includes("parse_error")) {
+      await supabase.from("groups").update({ plan_status: "idle" }).eq("id", groupId);
+      return new Response(
+        JSON.stringify({ error: "Couldn't parse the plan from the model. Please try again." }),
+        { status: 502, headers: { ...cors, "Content-Type": "application/json" } }
+      );
+    }
+
+    const plan = { ...parsed, generatedAt: Date.now(), constraint: constraint || null, model: MODEL };
 
     // Writing a fresh plan clears any "stale" marker and releases the generation lock.
     await supabase.from("groups").update({ plan, plan_status: "ready" }).eq("id", groupId);
