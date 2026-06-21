@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api } from "../api";
 import { CRAVINGS, fmtDay, next10Days } from "../constants";
-import { Button, Chip, Field, Input, Note } from "../ui";
+import { Button, Chip, Field, Input, Note, RangeSlider } from "../ui";
 import type { User } from "../types";
 
 export function EventProfileForm({
@@ -85,7 +85,7 @@ export function EventProfileForm({
         </div>
 
         <Field label={`PERSONAL BUDGET — $${budget}`}>
-          <input type="range" min={5} max={150} step={5} value={budget} onChange={(e) => setBudget(Number(e.target.value))} className="w-full accent-lime" />
+          <RangeSlider min={5} max={150} step={5} value={budget} onChange={setBudget} />
           <div className="flex justify-between text-xs text-muted mt-1">
             <span>$5</span>
             <span>$150</span>

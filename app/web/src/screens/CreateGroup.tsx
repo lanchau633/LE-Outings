@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "../api";
-import { Button, Field, Input, Chip } from "../ui";
+import { Button, Field, Input, Chip, RangeSlider } from "../ui";
 import type { Group, User } from "../types";
 
 export function CreateGroup({
@@ -59,24 +59,10 @@ export function CreateGroup({
           <Input value={city} onChange={(e) => setCity(e.target.value)} placeholder="Irvine, CA" />
         </Field>
         <Field label={`RADIUS — within ${radius} miles`}>
-          <input
-            type="range"
-            min={1}
-            max={50}
-            value={radius}
-            onChange={(e) => setRadius(Number(e.target.value))}
-            className="w-full accent-lime"
-          />
+          <RangeSlider min={1} max={50} value={radius} onChange={setRadius} />
         </Field>
         <Field label={`TIME OUT — up to ${maxHours} ${maxHours === 1 ? "hour" : "hours"}`}>
-          <input
-            type="range"
-            min={1}
-            max={12}
-            value={maxHours}
-            onChange={(e) => setMaxHours(Number(e.target.value))}
-            className="w-full accent-lime"
-          />
+          <RangeSlider min={1} max={12} value={maxHours} onChange={setMaxHours} />
           <div className="flex justify-between text-xs text-muted mt-1">
             <span>1h</span>
             <span>12h</span>

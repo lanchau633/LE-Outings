@@ -151,6 +151,35 @@ export function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
   );
 }
 
+export function RangeSlider({
+  min,
+  max,
+  step = 1,
+  value,
+  onChange,
+}: {
+  min: number;
+  max: number;
+  step?: number;
+  value: number;
+  onChange: (v: number) => void;
+}) {
+  const pct = ((value - min) / (max - min)) * 100;
+  return (
+    <input
+      type="range"
+      min={min}
+      max={max}
+      step={step}
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      style={{
+        background: `linear-gradient(to right, #c7f24a ${pct}%, #2a2a33 ${pct}%)`,
+      }}
+    />
+  );
+}
+
 export function Note({ children }: { children: ReactNode }) {
   return (
     <div className="flex gap-3 bg-surface border border-line rounded-2xl p-4 text-sm text-muted">
