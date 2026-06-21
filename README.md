@@ -1,64 +1,101 @@
 # LE-Outings
 
-An AI-powered group planning application designed to take the burden of organizing hangouts off of a single person and make gathering with friends effortless.
+An AI-powered group hangout planner. Friends submit their availability, budget, dietary restrictions, and activity preferences — the app finds the best shared day and generates a full multi-stop itinerary using Claude AI.
 
----
+## Features
 
-## 📱 Application Context
+- **Group creation** — set a destination city, radius, time window, and trip type (local or long-distance)
+- **Event profiles** — each member submits their availability, budget, cravings, and a specific activity request
+- **AI plan generation** — Claude searches the web and builds a 2–5 stop itinerary optimized for the whole group
+- **Live collaboration** — real-time plan status polling; any member can see when a plan is generating
+- **Regeneration** — tweak the plan with quick chips or a custom constraint
+- **Transportation planning** — car assignments for local trips, travel advice for long-distance
 
-- **Hackathon Scope**: For the purposes of the hackathon, the application is built as a web-based app hosted locally.
-- **Production Vision**: The ultimate goal is to deploy LE-Outings as a native mobile phone application for on-the-go planning and coordination.
+## Tech Stack
 
-## 🎯 Overview & Objectives
+| Layer | Technology |
+|---|---|
+| Frontend | React + Vite + Tailwind CSS |
+| Backend / DB | Supabase (Postgres + Auth + Storage) |
+| AI | Anthropic Claude (`claude-sonnet-4-6`) with web search |
+| Edge Function | Supabase Edge Functions (Deno) |
 
-Planning a hangout shouldn't feel like a second job. Standard tools (When2meet, group chats, calendars) show *when* people are free, but they don't solve the problem of *what* to do, *where* to eat, or *how* to get there. 
+## Project Structure
 
-LE-Outings solves this by automatically generating a complete, logistics-aware itinerary based on everyone's individual constraints in under 30 seconds.
+```
+app/
+├── web/                        # React frontend
+│   ├── src/
+│   │   ├── screens/            # GroupScreen, PlanView, CreateGroup, Profile, EventProfile
+│   │   ├── api.ts              # Supabase client + API methods
+│   │   ├── auth.ts             # Sign up / sign in logic
+│   │   ├── types.ts            # Shared TypeScript types
+│   │   ├── ui.tsx              # Reusable UI components
+│   │   └── constants.ts        # Shared constants + helpers
+│   └── .env                    # Supabase URL + anon key (gitignored)
+└── supabase/
+    ├── functions/
+    │   └── generate-plan/      # Edge function — calls Claude API
+    └── migrations/             # SQL migrations
+```
 
-## 🚀 Key Features
+## Getting Started
 
-* **Logistics-Aware Generation**: The AI doesn't just find overlapping times; it builds a full transportation plan (who is driving, who rides with whom) based on daily car availability.
-* **Niche Place Discovery**: Bypasses generic search results by pulling from Reddit threads, local blogs, and "hidden gem" listings. It prioritizes spots with high ratings but lower review counts to surface true local favorites.
-* **Dietary & Craving Matching**: Scans menu texts and Yelp attributes to ensure restaurant suggestions have clear, verified options for group members with dietary restrictions.
-* **Transparent Reasoning**: Explains *why* choices were made (e.g., *"Suggested Korean BBQ because it matches cravings and Jake's car fits everyone"*), building trust and context.
-* **Smart Adjustments**: Regenerate plans instantly with natural language constraints (e.g., *"make it budget-friendly"* or *"no seafood"*).
+### Prerequisites
+- Node.js 18+
+- Supabase CLI
+- An [Anthropic API key](https://console.anthropic.com)
+- A Supabase project
 
----
+### 1. Clone the repo
+```bash
+git clone https://github.com/lanchau633/LE-Outings.git
+cd LE-Outings
+```
 
-## 🔄 Use Case Flow: Friday Hangout Example
+### 2. Set up the database
+Run the migrations in order in the Supabase SQL editor:
+```
+app/supabase/migrations/0001_init.sql
+app/supabase/migrations/0002_features.sql
+app/supabase/migrations/0003_time_budget.sql
+app/supabase/migrations/0004_time_window.sql
+```
 
-1. **Group Setup**: Maya creates a group called *"Weekend Crew"* and invites 5 friends. They fill out quick profile details (e.g., Priya is vegetarian; Jake has a car; two friends don't drive).
-2. **Plan Request**: Maya requests a plan for the *"Irvine/Tustin area"* with a note: *"casual dinner, nothing too expensive"*.
-3. **Constraint Gathering**: Behind the scenes, the AI aggregates:
-   - **Time**: Best overlap is Friday 6-9 PM.
-   - **Dietary**: 1 vegetarian (Priya).
-   - **Cravings**: Korean food.
-   - **Logistics**: 1 car, 4 passengers (covers all 5 members).
-4. **Plan Generation**: AI searches for highly rated Korean spots with vegetarian options, checking their open hours.
-5. **Output**: An itinerary is generated:
-   - Restaurant venue & timeslot (6:30 PM).
-   - Menu note confirming vegetarian items for Priya.
-   - Transportation breakdown: *Jake drives everyone in his car.*
-6. **Adjustments**: Maya can request tweaks (e.g. *"cheaper"*), and the AI updates the suggestion in-place.
-7. **Lock-In**: The group confirms and goes!
+### 3. Configure the frontend
+Create `app/web/.env`:
+```
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
-### 📊 Flow Visualization
+### 4. Deploy the edge function
+```bash
+cd app
+supabase link --project-ref your-project-ref
+supabase secrets set ANTHROPIC_API_KEY=sk-ant-...
+supabase functions deploy generate-plan
+```
 
-![Use Case Flow Visualization](https://media.discordapp.net/attachments/1427139176515502233/1517963729520820284/image.png?ex=6a383163&is=6a36dfe3&hm=cf6cdb1604db4db9ba4377aa91dc83c1b1ae678de42f5b191dfdabc543d8bb4a&=&format=webp&quality=lossless&width=706&height=826)
+### 5. Run the frontend
+```bash
+cd app/web
+npm install
+npm run dev
+```
 
----
+## How It Works
 
-## 🛠️ Technical Scope
+1. A **group leader** creates a group with a city, radius, time window, and trip type
+2. Members are added by username and each fill out an **event profile** (availability, budget, cravings, activity)
+3. Once everyone submits, the app auto-triggers **plan generation**
+4. The edge function sends all member data to Claude, which uses web search to find real local venues and builds a multi-stop itinerary
+5. The plan is saved to Supabase and all members see it in real time
+6. Anyone can **regenerate** the plan with a custom constraint (e.g. "cheaper", "no seafood")
 
-### In Scope for Hackathon (v1)
-* User profile creation (availability, restrictions, car seats count).
-* Group management & friend invites.
-* AI-driven plan generation (venues, times, food, carpooling logistics).
-* Interactive summary view with reasoning.
-* Constrained regeneration ("less driving", "cheaper").
+## Security Notes
 
-### Out of Scope
-* Real-time group chat.
-* Bill splitting and expense tracking.
-* Google Calendar or external calendar sync.
-* Multi-day trip itineraries.
+- The Anthropic API key lives only in Supabase Edge Function secrets — never in the browser
+- The frontend uses only the Supabase `anon` public key
+- `.env` is gitignored
+- Row-level security is enabled on all tables
